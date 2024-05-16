@@ -125,6 +125,15 @@ for i in range(0, len(DXL_ID)):
         print("ID[%d] Write profile velocity success" % DXL_ID[i])
 
 for i in range(0, len(DXL_ID)):
+    # disble Danamixel Torque
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Dynamixel#%d has been successfully connected" % DXL_ID[i])
+
     # Enable Dynamixel Torque
     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
     if dxl_comm_result != COMM_SUCCESS:
@@ -193,9 +202,9 @@ def Waiting_to_reach_goal():
             break
 
 while 1:
-    print("Press any key to continue! (or press ESC to quit!)")
-    if getch() == chr(0x1b):
-        break
+    # print("Press any key to continue! (or press ESC to quit!)")
+    # if getch() == chr(0x1b):
+    #     break
 
     pointion1 = [0, 0, 0, 0, 0, 0]
     for i in range(0,len(pointion1)):

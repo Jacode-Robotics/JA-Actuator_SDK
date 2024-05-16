@@ -108,7 +108,16 @@ for i in range(0, len(DXL_ID)):
         print("ID[%d] set time success" % DXL_ID[i])
 
 for i in range(0, len(DXL_ID)):
-    # Enable Dynamixel Torque
+    # disable Danamixel Torque
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Dynamixel#%d has been successfully connected" % DXL_ID[i])
+
+    # Enable Danamixel Torque
     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
