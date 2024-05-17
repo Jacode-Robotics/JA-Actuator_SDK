@@ -118,7 +118,7 @@ for i in range(0, len(DXL_ID)):
 
 # write profile acc
 for i in range(0, len(DXL_ID)):
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 556, 2048)
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 556, 500)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
