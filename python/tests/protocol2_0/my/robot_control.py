@@ -106,8 +106,9 @@ def Open_port(baudrate):
         quit()
 Open_port(BAUDRATE)
 
+# write profile velocity
 for i in range(0, len(DXL_ID)):
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 560, 400)
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 560, 800)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
@@ -115,8 +116,9 @@ for i in range(0, len(DXL_ID)):
     else:
         print("ID[%d] Write profile velocity success" % DXL_ID[i])
 
+# write profile acc
 for i in range(0, len(DXL_ID)):
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 40, 500)
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], 556, 2048)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:

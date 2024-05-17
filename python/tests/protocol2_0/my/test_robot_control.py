@@ -99,7 +99,7 @@ time.sleep(0.1)
 
 # set profile time
 for i in range(0, len(DXL_ID)):
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 522, 5000)
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 522, 2000)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:

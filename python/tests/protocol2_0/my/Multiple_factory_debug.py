@@ -520,7 +520,7 @@ while 1:
 time.sleep(1)
 
 for i in range(0,len(DXL_ID)):
-    Send_Dynamixel_Position(DXL_ID[i],0)
+    Send_Dynamixel_Position(0)
 while 1:
     Read_Dynamixel_Position()
     arrived_joint_num = 0
