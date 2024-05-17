@@ -147,6 +147,13 @@ for i in range(0, len(DXL_ID)):
         if not abs(dxl_goal_position[0] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD:
             break    
 
+    # Disable Dynamixel Torque
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))       
+        
     # Disable trajectory profile
     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_DRIVE_MODE, PROFILE_DISABLE)
     if dxl_comm_result != COMM_SUCCESS:
@@ -154,6 +161,13 @@ for i in range(0, len(DXL_ID)):
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))        
     
+    # Enable Dynamixel Torque
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)    
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))       
+            
     # Add parameter storage for Dynamixel present position value
     dxl_addparam_result = groupSyncRead.addParam(DXL_ID[i])
     if dxl_addparam_result != True:
