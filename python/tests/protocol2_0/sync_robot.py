@@ -54,8 +54,8 @@ ADDR_OPERATING_MODE         = 11;
 PROTOCOL_VERSION            = 2.0
 
 # Make sure that each DYNAMIXEL ID should have unique ID.
-Master_ID = [1,2]
-Slave_ID = [3,4]
+Master_ID = [1, 2, 3, 4, 5, 6]
+Slave_ID = [7, 8, 9, 10, 11, 12]
 
 
 # Use the actual port assigned to the U2D2.
@@ -109,52 +109,52 @@ else:
     quit()   
 
 # Slave Robot Homing
-for i in range(0, len(Slave_ID)):
-    # Enable Dynamixel Torque
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Dynamixel#%d has been successfully connected" % Slave_ID[i])
+# for i in range(0, len(Slave_ID)):
+#     # Enable Dynamixel Torque
+#     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
+#     if dxl_comm_result != COMM_SUCCESS:
+#         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+#     elif dxl_error != 0:
+#         print("%s" % packetHandler.getRxPacketError(dxl_error))
+#     else:
+#         print("Dynamixel#%d has been successfully connected" % Slave_ID[i])
 
-    # Enable trajectory profile
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_DRIVE_MODE, PROFILE_ENABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
+#     # Enable trajectory profile
+#     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_DRIVE_MODE, PROFILE_ENABLE)
+#     if dxl_comm_result != COMM_SUCCESS:
+#         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+#     elif dxl_error != 0:
+#         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-    # Write start position point
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, Slave_ID[i], ADDR_GOAL_POSITION, dxl_goal_position[i])
+#     # Write start position point
+#     dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, Slave_ID[i], ADDR_GOAL_POSITION, dxl_goal_position[i])
     
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
+#     if dxl_comm_result != COMM_SUCCESS:
+#         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+#     elif dxl_error != 0:
+#         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-    while 1:
-        # Read present position
-        dxl_present_position[i], dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, Slave_ID[i], ADDR_PRESENT_POSITION)
-        dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0];
+#     while 1:
+#         # Read present position
+#         dxl_present_position[i], dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, Slave_ID[i], ADDR_PRESENT_POSITION)
+#         dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0];
         
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
+#         if dxl_comm_result != COMM_SUCCESS:
+#             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+#         elif dxl_error != 0:
+#             print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-        print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (Slave_ID[i], dxl_goal_position[i], dxl_present_position[i]))
+#         print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (Slave_ID[i], dxl_goal_position[i], dxl_present_position[i]))
 
-        if not abs(dxl_goal_position[i] - dxl_present_position[i]) > DXL_MOVING_STATUS_THRESHOLD:
-            break  
+#         if not abs(dxl_goal_position[i] - dxl_present_position[i]) > DXL_MOVING_STATUS_THRESHOLD:
+#             break  
 
-    # Disable slave motor trajectory profile
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_DRIVE_MODE, PROFILE_DISABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
+#     # Disable slave motor trajectory profile
+#     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, Slave_ID[i], ADDR_DRIVE_MODE, PROFILE_DISABLE)
+#     if dxl_comm_result != COMM_SUCCESS:
+#         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+#     elif dxl_error != 0:
+#         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
 
 # Master Robot Homing
@@ -223,26 +223,28 @@ while 1:
     else:
         for i in range(0, len(Master_ID)):
             dxl_present_position[i] = groupSyncRead.getData(Master_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0]
             if abs(dxl_present_position[i] - dxl_goal_position[i]) < 10000:
-                dxl_goal_position[i] = dxl_present_position[i]
-            print("dxl_goal_position[%03d]:%03d " % (Master_ID[i],dxl_goal_position[i]))
+                dxl_goal_position[i] = dxl_present_position[i];
 
             param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[i])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[i])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[i])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[i]))]
         
-            # Add Salve Robot goal position value to the Syncwrite parameter storage
-            dxl_addparam_result = groupSyncWrite.addParam(Slave_ID[i], param_goal_position)
-            if dxl_addparam_result != True:
-                print("[ID:%03d] groupSyncWrite addparam failed" % Slave_ID[i])
-                quit()
+        
+        #     # Add Salve Robot goal position value to the Syncwrite parameter storage
+        #     dxl_addparam_result = groupSyncWrite.addParam(Slave_ID[i], param_goal_position)
+        #     if dxl_addparam_result != True:
+        #         print("[ID:%03d] groupSyncWrite addparam failed" % Slave_ID[i])
+        #         quit()
 
-        # Syncwrite goal position
-        dxl_comm_result = groupSyncWrite.txPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        # # Syncwrite goal position
+        # dxl_comm_result = groupSyncWrite.txPacket()
+        # if dxl_comm_result != COMM_SUCCESS:
+        #     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        # Clear syncwrite parameter storage
-        groupSyncWrite.clearParam()
+        # # Clear syncwrite parameter storage
+        # groupSyncWrite.clearParam()
+
+    for i in range(0, len(Master_ID)):
+        print("[ID:%03d] PresPos:%03d" % (Master_ID[i], dxl_present_position[i]))
 
     # Wait for movement to goal position
     time.sleep(0.01)
