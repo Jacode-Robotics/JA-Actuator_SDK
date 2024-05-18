@@ -99,7 +99,7 @@ time.sleep(0.1)
 
 # set profile time
 for i in range(0, len(DXL_ID)):
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 522, 2000)
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 522, 1600)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
@@ -157,9 +157,9 @@ for i in range(0, len(DXL_ID)):
             break 
 
 while 1:
-    print("Press any key to continue! (or press ESC to quit!)")
-    if getch() == chr(0x1b):
-        break
+    # print("Press any key to continue! (or press ESC to quit!)")
+    # if getch() == chr(0x1b):
+    #     break
     
     
 
@@ -185,27 +185,26 @@ while 1:
     # Clear syncwrite parameter storage
     groupSyncWrite.clearParam()
 
-    while 1:
-        # Syncread present position
-        dxl_comm_result = groupSyncRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    # while 1:
+    #     # Syncread present position
+    #     dxl_comm_result = groupSyncRead.txRxPacket()
+    #     if dxl_comm_result != COMM_SUCCESS:
+    #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        arrived_joint_num = 0
-        for i in range(0, len(DXL_ID)):
-            # Get Dynamixel present position value
-            dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
+    #     arrived_joint_num = 0
+    #     for i in range(0, len(DXL_ID)):
+    #         # Get Dynamixel present position value
+    #         dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+    #         dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
 
-            print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
+    #         print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
 
-            if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
-                arrived_joint_num += 1
+    #         if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
+    #             arrived_joint_num += 1
 
-        if arrived_joint_num >= len(DXL_ID):
-            print("Reaching zero position")
-            break
-        time.sleep(0.5)
+    #     if arrived_joint_num >= len(DXL_ID):
+    #         break
+    time.sleep(3)
 
 
     pointion1 = [-20, -45, -70, -20, -70, 0]
@@ -230,27 +229,27 @@ while 1:
     # Clear syncwrite parameter storage
     groupSyncWrite.clearParam()
 
-    while 1:
-        # Syncread present position
-        dxl_comm_result = groupSyncRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    # while 1:
+    #     # Syncread present position
+    #     dxl_comm_result = groupSyncRead.txRxPacket()
+    #     if dxl_comm_result != COMM_SUCCESS:
+    #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        arrived_joint_num = 0
-        for i in range(0, len(DXL_ID)):
-            # Get Dynamixel present position value
-            dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
+    #     arrived_joint_num = 0
+    #     for i in range(0, len(DXL_ID)):
+    #         # Get Dynamixel present position value
+    #         dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+    #         dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
 
-            print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
+    #         print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
 
-            if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
-                arrived_joint_num += 1
+    #         if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
+    #             arrived_joint_num += 1
 
-        if arrived_joint_num >= len(DXL_ID):
-            print("Reaching position1")
-            break
-        time.sleep(3)
+    #     if arrived_joint_num >= len(DXL_ID):
+    #         print("Reaching position1")
+    #         break
+    time.sleep(6)
 
 
 
@@ -276,27 +275,27 @@ while 1:
     # Clear syncwrite parameter storage
     groupSyncWrite.clearParam()
 
-    while 1:
-        # Syncread present position
-        dxl_comm_result = groupSyncRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    # while 1:
+    #     # Syncread present position
+    #     dxl_comm_result = groupSyncRead.txRxPacket()
+    #     if dxl_comm_result != COMM_SUCCESS:
+    #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        arrived_joint_num = 0
-        for i in range(0, len(DXL_ID)):
-            # Get Dynamixel present position value
-            dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
+    #     arrived_joint_num = 0
+    #     for i in range(0, len(DXL_ID)):
+    #         # Get Dynamixel present position value
+    #         dxl_present_position = groupSyncRead.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+    #         dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0];
 
-            print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
+    #         print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
 
-            if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
-                arrived_joint_num += 1
+    #         if not (abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD):
+    #             arrived_joint_num += 1
 
-        if arrived_joint_num >= len(DXL_ID):
-            print("Reaching position1")
-            break
-        time.sleep(0.5)
+    #     if arrived_joint_num >= len(DXL_ID):
+    #         print("Reaching position1")
+    #         break
+    time.sleep(3)
 
 
 
