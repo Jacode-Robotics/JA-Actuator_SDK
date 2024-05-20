@@ -46,8 +46,8 @@ LEN_GOAL_POSITION           = 4          # Data Byte Length
 ADDR_PRESENT_POSITION       = 580
 LEN_PRESENT_POSITION        = 4          # Data Byte Length
 BAUDRATE                    = 2000000
-ADDR_DRIVE_MODE             = 10;
-ADDR_OPERATING_MODE         = 11;
+ADDR_DRIVE_MODE             = 10
+ADDR_OPERATING_MODE         = 11
 
 # DYNAMIXEL Protocol Version (1.0 / 2.0)
 # https://emanual.robotis.com/docs/en/dxl/protocol2/

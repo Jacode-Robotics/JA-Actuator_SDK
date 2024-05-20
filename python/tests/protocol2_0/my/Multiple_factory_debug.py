@@ -39,7 +39,7 @@ DXL_MODEL.append(5210)
 dxl_goal_position     = 5000          # Goal position
 dxl_present_position  = []            # Present position
 
-dxl_goal_velocity     = 5             # Goal velocity
+dxl_goal_velocity     = 300             # Goal velocity
 dxl_present_velocity  = []            # Present velocity
 
 dxl_goal_current      = 50            # Goal current
@@ -89,6 +89,34 @@ VELOCITY_CONTROL_Mode       = 1                 # Value for velocity control mod
 POSITION_CONTROL_Mode       = 4                 # Value for position control mode
 VALUE_SECRET_KEY            = 0x1234
 
+# Initialize PortHandler instance
+# Set the port path
+# Get methods and members of PortHandlerLinux or PortHandlerWindows
+portHandler = PortHandler(DEVICENAME)
+
+# Initialize PacketHandler instance
+# Set the protocol version
+# Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
+packetHandler = PacketHandler(PROTOCOL_VERSION)
+
+# Initialize GroupSyncWrite instance for Position
+groupSyncWritePosition = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_POSITION, LEN_GOAL_POSITION)
+
+# Initialize GroupSyncRead instace for Present Position
+groupSyncReadPosition = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+
+# Initialize GroupSyncWrite instance for velocity
+groupSyncWriteVelocity = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_VELOCITY, LEN_GOAL_VELOCITY)
+
+# Initialize GroupSyncRead instace for Present velocity
+groupSyncReadVelocity = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_VELOCITY, LEN_PRESENT_VELOCITY)
+
+# Initialize GroupSyncWrite instance for current
+groupSyncWriteCurrent = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_CURRENT, LEN_GOAL_CURRENT)
+
+# Initialize GroupSyncRead instace for Present current
+groupSyncReadCurrent = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_CURRENT, LEN_PRESENT_CURRENT)
+
 def update_crc(data_blk):
     crc_accum = 0x0000
     crc_table = [
@@ -132,6 +160,216 @@ def update_crc(data_blk):
 
     return crc_accum
 
+def write_1Byte(ID, ADDR, Data, output):
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR, Data)
+    if dxl_comm_result != COMM_SUCCESS:
+        print(f"Write {output} failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print(f"Write {output} failed %s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print(f"Write {output} successfully")
+
+def write_2Byte(ID, ADDR, Data, output):
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID, ADDR, Data)
+    if dxl_comm_result != COMM_SUCCESS:
+        print(f"Write {output} failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print(f"Write {output} failed %s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print(f"Write {output} successfully")
+
+def sync_write(dxl_goal, goal_value, output, groupSyncWriteHeader):
+    dxl_goal = goal_value
+
+    # Allocate goal value into byte array
+    param_goal = [DXL_LOBYTE(DXL_LOWORD(dxl_goal)), DXL_HIBYTE(DXL_LOWORD(dxl_goal)), DXL_LOBYTE(DXL_HIWORD(dxl_goal)), DXL_HIBYTE(DXL_HIWORD(dxl_goal))]
+    for i in range(0,len(DXL_ID)):
+        # Add Dynamixel goal value to the Syncwrite parameter storage
+        dxl_addparam_result = groupSyncWriteHeader.addParam(DXL_ID[i], param_goal)
+        if dxl_addparam_result != True:
+            print("[ID:%03d] groupSyncWrite addparam failed" % DXL_ID[i])
+            quit()
+
+    # Syncwrite goal
+    dxl_comm_result = groupSyncWriteHeader.txPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    else:
+        print(f"Write Dynamixel {output} successfully")
+
+    # Clear syncwrite parameter storage
+    groupSyncWriteHeader.clearParam()
+
+def sync_read(dxl_present_value, dxl_goal_value, ADDR_PRESENT_value, LEN_PRESENT_value, groupSyncHeader, output):
+    # syncread present position
+    dxl_comm_result = groupSyncHeader.txRxPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    else:
+        for i in range(0,len(DXL_ID)):
+            dxl_present_value[i] = groupSyncHeader.getData(DXL_ID[i], ADDR_PRESENT_value, LEN_PRESENT_value)
+            dxl_present_value[i] = struct.unpack('i', struct.pack('I', dxl_present_value[i]))[0]
+            print(f"[ID:%03d] Goal{output}:%03d  Pres{output}:%03d" % (DXL_ID[i], dxl_goal_value, dxl_present_value[i]))
+
+def Open_port(baudrate):
+    # Open port
+    if portHandler.openPort():
+        print("Succeeded to open the port")
+    else:
+        print("Failed to open the port")
+        print("Press any key to terminate...")
+        getch()
+        quit()
+
+    # Set port baudrate
+    if portHandler.setBaudRate(baudrate):
+        print("Succeeded to change the baudrate")
+    else:
+        print("Failed to change the baudrate")
+        print("Press any key to terminate...")
+        getch()
+        quit()
+
+def ping_the_Dynamixel(ID):
+    # Try to ping the Dynamixel and get Dynamixel model number
+    dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, ID)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("[ID:%03d] ping failed %s" % (ID, packetHandler.getTxRxResult(dxl_comm_result)))
+        quit()
+    elif dxl_error != 0:
+        print("[ID:%03d] ping failed %s" % (ID, packetHandler.getRxPacketError(dxl_error)))
+        quit()
+    else:
+        print("[ID:%03d] ping Succeeded. Dynamixel model number : %d" % (ID, dxl_model_number))
+
+def Write_Secret_key(ID,Secret_key):
+    write_2Byte(ID, ADDR_Secret_key, Secret_key, "Secret_key")
+
+def Write_Dynamixel_Model(ID,model_num):
+    write_2Byte(ID, ADDR_DXL_MODEL, model_num, "Dynamixel model")
+
+def Control_Table_Backup(ID):
+    crc = 0x0000
+    # 要发送的数据
+    data = [0xFF,0xFF,0xFD,0x00,ID,0x08,0x00,0x20,0x01,0x43,0x54,0x52,0x4C,0X00,0X00]
+    crc = update_crc(data)
+    data[len(data)-2] = crc & 0xff
+    data[len(data)-1] = (crc >> 8) & 0xff
+
+    # 将数据转换为字节串
+    byte_data = bytes(data)
+
+    # 发送数据
+    written_bytes = portHandler.writePort(byte_data)
+    # 检查写入的字节数
+    if written_bytes != len(byte_data):
+        print("Failed to write all bytes")
+    else:
+        print("Control_Table_Backup success")
+
+def Dynamixel_reboot(ID):
+    # Try reboot
+    # Dynamixel LED will flicker while it reboots
+    dxl_comm_result, dxl_error = packetHandler.reboot(portHandler, ID)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("reboot Failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("reboot Failed %s" % packetHandler.getRxPacketError(dxl_error))
+    print("[ID:%03d] reboot Succeeded\n" % ID)
+
+# Try Factory Reset
+# Usually, the next step requires a restart
+def Dynamixel_Factory_Reset(ID):
+    crc = 0x0000
+    data = [0xFF, 0xFF, 0xFD, 0x00, ID, 0x04, 0x00, 0x06, 0x01, 0x00, 0x00]      # 要发送的数据
+    crc = update_crc(data)
+    data[len(data)-2] = crc & 0xff
+    data[len(data)-1] = (crc >> 8) & 0xff
+
+    # 将数据转换为字节串
+    byte_data = bytes(data)
+
+    # 发送数据
+    written_bytes = portHandler.writePort(byte_data)
+    # 检查写入的字节数
+    if written_bytes != len(byte_data):
+        print("Factory Reset Failed")
+    else:
+        print("Factory Reset successfully")
+
+def Set_Dynamixel_Operating_mode(ID,Operating_mode):
+    Set_Dynamixel_Torque(DXL_ID[i],TORQUE_DISABLE)
+    time.sleep(0.1)
+    write_1Byte(ID, ADDR_OPERATING_MODE, Operating_mode, "dynamixel operating mode")
+    time.sleep(0.1)
+    Set_Dynamixel_Torque(DXL_ID[i],TORQUE_ENABLE)
+
+
+def Send_Dynamixel_Velocity(Velocity):
+    print("Testing velocity mode!")
+    sync_write(dxl_goal_velocity, Velocity, "Velocity", groupSyncWriteVelocity)
+
+def Read_Dynamixel_Velocity():
+    sync_read(dxl_present_velocity, dxl_goal_velocity, ADDR_PRESENT_VELOCITY, LEN_PRESENT_VELOCITY, groupSyncReadVelocity, "vel")
+    
+    if abs(dxl_present_velocity[i] - dxl_goal_velocity) <= DXL_MOVING_VELOCITY_THRESHOLD:
+        print("dxl_goal_velocity:%03d  dxl_present_velocity[%03d]:%03d velocity normal"\
+            % (dxl_goal_velocity, DXL_ID[i], dxl_present_velocity[0]))
+    else:
+        print("dxl_goal_velocity:%03d  dxl_present_velocity[%03d]:%03d velocity abnormal"\
+            % (dxl_goal_velocity, DXL_ID[i], dxl_present_velocity[0]))
+        quit()
+
+def Send_Dynamixel_Position(Position):
+    sync_write(dxl_goal_position, Position, "Position", groupSyncWritePosition)
+
+def Read_Dynamixel_Position():
+    sync_read(dxl_present_position, dxl_goal_position, ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION, groupSyncReadPosition, "Pos")
+
+def turn_the_Dynamixel(position):
+    Send_Dynamixel_Position(position)
+
+    # while 1:
+    #     Read_Dynamixel_Position()
+    #     arrived_joint_num = 0
+    #     for i in range(0,len(DXL_ID)):
+    #         if abs(dxl_present_position[i]-dxl_goal_position) <= DXL_MOVING_STATUS_THRESHOLD:
+    #             arrived_joint_num += 1
+    #     if arrived_joint_num == len(DXL_ID):
+    #         break
+    time.sleep(5)
+
+
+def Set_Dynamixel_Torque(ID,TORQUE_en_dis):
+    write_1Byte(ID, ADDR_TORQUE_ENABLE, TORQUE_en_dis, "Dynamixel Torque")
+
+def Set_trajectory_profile(ID,PROFILE_en_dis):
+    write_1Byte(ID, ADDR_DRIVE_MODE, PROFILE_en_dis, "trajectory profile")
+
+def Dynamixel_Homing():
+    print("Dynamixel start Homing!")
+    
+    for i in range(0,len(DXL_ID)):
+        Set_Dynamixel_Torque(DXL_ID[i],TORQUE_ENABLE)
+        Set_trajectory_profile(DXL_ID[i],PROFILE_ENABLE)
+
+    turn_the_Dynamixel(0)
+
+def Send_Dynamixel_Current(Current):
+    print("Testing current mode!")
+    sync_write(dxl_goal_current, Current, "Current", groupSyncWriteCurrent)
+
+def Read_Dynamixel_Current():
+    sync_read(dxl_present_current, dxl_goal_current, ADDR_PRESENT_CURRENT, LEN_PRESENT_CURRENT, groupSyncReadCurrent, "cur")
+
+    for i in range(0,len(DXL_ID)):
+        if abs(dxl_present_current[i] - dxl_goal_current) <= DXL_MOVING_CURRENT_THRESHOLD:
+            print("dxl_goal_current:%03d  dxl_present_current[%03d]:%03d current normal"\
+                % (dxl_goal_current, DXL_ID[i], dxl_present_current[i]))
+        else:
+            print("dxl_goal_current:%03d  dxl_present_current[%03d]:%03d current abnormal"\
+                % (dxl_goal_current, DXL_ID[i], dxl_present_current[i]))
+            quit()
 
 print(f"\nDefault serial port name: {DEVICENAME}")
 print(f"Default firmware version: {Firmware_version}")
@@ -238,231 +476,48 @@ if len(args) > 1:
             quit()
 
 
-# Initialize PortHandler instance
-# Set the port path
-# Get methods and members of PortHandlerLinux or PortHandlerWindows
-portHandler = PortHandler(DEVICENAME)
-
-# Initialize PacketHandler instance
-# Set the protocol version
-# Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
-packetHandler = PacketHandler(PROTOCOL_VERSION)
-
-# Initialize GroupSyncWrite instance for Position
-groupSyncWritePosition = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_POSITION, LEN_GOAL_POSITION)
-
-# Initialize GroupSyncRead instace for Present Position
-groupSyncReadPosition = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-
-# Initialize GroupSyncWrite instance for velocity
-groupSyncWriteVelocity = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_VELOCITY, LEN_GOAL_VELOCITY)
-
-# Initialize GroupSyncRead instace for Present velocity
-groupSyncReadVelocity = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_VELOCITY, LEN_PRESENT_VELOCITY)
-
-# Initialize GroupSyncWrite instance for current
-groupSyncWriteCurrent = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_CURRENT, LEN_GOAL_CURRENT)
-
-# Initialize GroupSyncRead instace for Present current
-groupSyncReadCurrent = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_CURRENT, LEN_PRESENT_CURRENT)
-
-def Open_port(baudrate):
-    # Open port
-    if portHandler.openPort():
-        print("Succeeded to open the port")
-    else:
-        print("Failed to open the port")
-        print("Press any key to terminate...")
-        getch()
-        quit()
-
-    # Set port baudrate
-    if portHandler.setBaudRate(baudrate):
-        print("Succeeded to change the baudrate")
-    else:
-        print("Failed to change the baudrate")
-        print("Press any key to terminate...")
-        getch()
-        quit()
+# Open port
 Open_port(BAUDRATE)
 
-def ping_the_Dynamixel(ID):
-    # Try to ping the Dynamixel and get Dynamixel model number
-    dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("[ID:%03d] ping failed %s" % (ID, packetHandler.getTxRxResult(dxl_comm_result)))
-        quit()
-    elif dxl_error != 0:
-        print("[ID:%03d] ping failed %s" % (ID, packetHandler.getRxPacketError(dxl_error)))
-        quit()
-    else:
-        print("[ID:%03d] ping Succeeded. Dynamixel model number : %d" % (ID, dxl_model_number))
-# Ping all ID
 for i in range(0,len(NOW_DXL_ID)):
+    # Ping ID
     ping_the_Dynamixel(NOW_DXL_ID[i])
-
-def Write_Secret_key(ID,Secret_key):
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID, ADDR_Secret_key, Secret_key)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("Write Secret_key failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("Write Secret_key failed %s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Write Secret_key successfully")
-if Firmware_version == 'DRV-v7.bin':
-    for i in range(0,len(NOW_DXL_ID)):
-        Write_Secret_key(NOW_DXL_ID[i],VALUE_SECRET_KEY)
-
-for i in range(0,len(NOW_DXL_ID)):
+    # write secret key
+    Write_Secret_key(NOW_DXL_ID[i],VALUE_SECRET_KEY)
     # Write new ID
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, NOW_DXL_ID[i], ADDR_ID, DXL_ID[i])
-
-# Ping all ID
-for i in range(0,len(DXL_ID)):
+    write_1Byte(NOW_DXL_ID[i], ADDR_ID, DXL_ID[i], "ID")
+    # Ping ID
     ping_the_Dynamixel(DXL_ID[i])
-
-def Write_Dynamixel_Model(ID,model_num):
-    # Write Dynamixel model
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID, ADDR_DXL_MODEL, model_num)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("Write Dynamixel model failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("Write Dynamixel model failed %s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Write Dynamixel model successfully")
-for i in range(0,len(DXL_ID)):
+    # Write dynamixel model
     Write_Dynamixel_Model(DXL_ID[i],DXL_MODEL[i])
 
-def Control_Table_Backup(ID):
-    crc = 0x0000
-    # 要发送的数据
-    data = [0xFF,0xFF,0xFD,0x00,ID,0x08,0x00,0x20,0x01,0x43,0x54,0x52,0x4C,0X00,0X00]
-    crc = update_crc(data)
-    data[len(data)-2] = crc & 0xff
-    data[len(data)-1] = (crc >> 8) & 0xff
-
-    # 将数据转换为字节串
-    byte_data = bytes(data)
-
-    # 发送数据
-    written_bytes = portHandler.writePort(byte_data)
-    # 检查写入的字节数
-    if written_bytes != len(byte_data):
-        print("Failed to write all bytes")
-    else:
-        print("Control_Table_Backup success")
+# Control table backup
 for i in range(0,len(DXL_ID)):
     Control_Table_Backup(DXL_ID[i])
-    
-def Dynamixel_reboot(ID):
-    # Try reboot
-    # Dynamixel LED will flicker while it reboots
-    dxl_comm_result, dxl_error = packetHandler.reboot(portHandler, ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("reboot Failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("reboot Failed %s" % packetHandler.getRxPacketError(dxl_error))
-    print("[ID:%03d] reboot Succeeded\n" % ID)
+time.sleep(2)
+
+# Dynamixel reboot
 for i in range(0,len(DXL_ID)):
     Dynamixel_reboot(DXL_ID[i])
 time.sleep(1)
 
-# Try Factory Reset
-# Usually, the next step requires a restart
-def Dynamixel_Factory_Reset(ID):
-    crc = 0x0000
-    data = [0xFF, 0xFF, 0xFD, 0x00, ID, 0x04, 0x00, 0x06, 0x01, 0x00, 0x00]      # 要发送的数据
-    crc = update_crc(data)
-    data[len(data)-2] = crc & 0xff
-    data[len(data)-1] = (crc >> 8) & 0xff
-
-    # 将数据转换为字节串
-    byte_data = bytes(data)
-
-    # 发送数据
-    written_bytes = portHandler.writePort(byte_data)
-    # 检查写入的字节数
-    if written_bytes != len(byte_data):
-        print("Factory Reset Failed")
-    else:
-        print("Factory Reset successfully")
+# Dynamixel factory reset
 for i in range(0,len(DXL_ID)):
     Dynamixel_Factory_Reset(DXL_ID[i])
 time.sleep(1)
 
-
+# Dynamixel reboot
 for i in range(0,len(DXL_ID)):
     Dynamixel_reboot(DXL_ID[i])
 time.sleep(1)
 
-def Set_Dynamixel_Operating_mode(ID,Operating_mode):
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_OPERATING_MODE, Operating_mode)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("Set dynamixel operating mode Failed %s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("Set dynamixel operating mode Failed %s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Set dynamixel operating mode successfully")
+# Set dynamixel operating mode to ELE_ZERO_MODEL
 for i in range(0,len(DXL_ID)):
     Set_Dynamixel_Operating_mode(DXL_ID[i],ELE_ZERO_MODEL)
 time.sleep(1)
 
-def Dynamixel_Homing(ID):
-    print("Dynamixel start Homing!")
-    # Enable Dynamixel Torque
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Enable Dynamixel Torque Succeeded")
-
-    # Enable trajectory profile
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_DRIVE_MODE, PROFILE_ENABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Enable trajectory profile Succeeded")
-
-    # Write start position point
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, ID, ADDR_GOAL_POSITION, 0)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("11%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("11%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Write start position point Succeeded")
-
-    while 1:
-        # Read present position
-        present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, ID, ADDR_PRESENT_POSITION)
-        present_position = struct.unpack('i', struct.pack('I', present_position))[0]
-        
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-
-        print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (ID, 0, present_position))
-
-        if abs(present_position) < DXL_MOVING_STATUS_THRESHOLD:
-            break
-    
-    # Disable trajectory profile
-    # dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_DRIVE_MODE, PROFILE_DISABLE)
-    # if dxl_comm_result != COMM_SUCCESS:
-    #     print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    # elif dxl_error != 0:
-    #     print("%s" % packetHandler.getRxPacketError(dxl_error))
+# Add parameter storage for Dynamixel present value
 for i in range(0,len(DXL_ID)):
-    Dynamixel_Homing(DXL_ID[i])
-time.sleep(2)
-
-for i in range(0,len(DXL_ID)):
-    # Add parameter storage for Dynamixel present position value
     dxl_addparam_result = groupSyncReadPosition.addParam(DXL_ID[i])
     if dxl_addparam_result != True:
         print("[ID:%03d] groupSyncReadPosition addparam failed" % DXL_ID[i])
@@ -476,204 +531,53 @@ for i in range(0,len(DXL_ID)):
         print("[ID:%03d] groupSyncReadCurrent addparam failed" % DXL_ID[i])
         quit()
 
-def Send_Dynamixel_Position(Position):
-    print("Testing position mode!")
-    # Allocate goal position value into byte array
-    param_goal_position = [DXL_LOBYTE(DXL_LOWORD(Position)), DXL_HIBYTE(DXL_LOWORD(Position)), DXL_LOBYTE(DXL_HIWORD(Position)), DXL_HIBYTE(DXL_HIWORD(Position))]
-    for i in range(0,len(DXL_ID)):
-        # Add Dynamixel goal position value to the Syncwrite parameter storage
-        dxl_addparam_result = groupSyncWritePosition.addParam(DXL_ID[i], param_goal_position)
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncWritePosition addparam failed" % DXL_ID[i])
-            quit()
-
-    # Syncwrite goal position
-    dxl_comm_result = groupSyncWritePosition.txPacket()
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    else:
-        print("Send_Dynamixel_Position success")
-
-    # Clear syncwrite parameter storage
-    groupSyncWritePosition.clearParam()
-
-def Read_Dynamixel_Position():
-    # syncread present position
-    dxl_comm_result = groupSyncReadPosition.txRxPacket()
-    for i in range(0,len(DXL_ID)):
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        else:
-            dxl_present_position[i] = groupSyncReadPosition.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0]
-        print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position, dxl_present_position[i]))
-
-Send_Dynamixel_Position(dxl_goal_position)
-while 1:
-    Read_Dynamixel_Position()
-    arrived_joint_num = 0
-    for i in range(0,len(DXL_ID)):
-        if abs(dxl_present_position[i]-dxl_goal_position) <= DXL_MOVING_STATUS_THRESHOLD:
-            arrived_joint_num += 1
-    if arrived_joint_num == len(DXL_ID):
-        break
+# Dynamixel homing
+Dynamixel_Homing()
 time.sleep(1)
 
-for i in range(0,len(DXL_ID)):
-    Send_Dynamixel_Position(0)
-while 1:
-    Read_Dynamixel_Position()
-    arrived_joint_num = 0
-    for i in range(0,len(DXL_ID)):
-        if abs(dxl_present_position[i]) <= DXL_MOVING_STATUS_THRESHOLD:
-            arrived_joint_num += 1
-    if arrived_joint_num == len(DXL_ID):
-        break
+# velocity position mode test
+turn_the_Dynamixel(dxl_goal_position)
+time.sleep(1)
+turn_the_Dynamixel(0)
 time.sleep(1)
 
-def Disable_Dynamixel(ID):
-    # Disable Dynamixel Torque
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
+# Set dynamixel operating mode to VELOCITY_CONTROL_Mode
 for i in range(0,len(DXL_ID)):
-    Disable_Dynamixel(DXL_ID[i])
     Set_Dynamixel_Operating_mode(DXL_ID[i], VELOCITY_CONTROL_Mode)
 
-def Enable_Dynamixel(ID):
-    # Enable Dynamixel Torque
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Dynamixel#%d has been successfully connected" % ID)
-for i in range(0,len(DXL_ID)): 
-    Enable_Dynamixel(DXL_ID[i])
-
-def Send_Dynamixel_Velocity(Velocity):
-    print("Testing velocity mode!")
-    # Allocate goal velocity value into byte array
-    param_goal_velocity = [DXL_LOBYTE(DXL_LOWORD(Velocity)), DXL_HIBYTE(DXL_LOWORD(Velocity)), DXL_LOBYTE(DXL_HIWORD(Velocity)), DXL_HIBYTE(DXL_HIWORD(Velocity))]
-    
-    for i in range(0,len(DXL_ID)):
-        # Add Dynamixel goal velocity value to the Syncwrite parameter storage
-        dxl_addparam_result = groupSyncWriteVelocity.addParam(DXL_ID[i], param_goal_velocity)
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncWrite addparam failed" % DXL_ID[i])
-            quit()
-
-    # Syncwrite goal velocity
-    dxl_comm_result = groupSyncWriteVelocity.txPacket()
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    else:
-        print("Send_Dynamixel_Velocity success")
-
-    # Clear syncwrite parameter storage
-    groupSyncWriteVelocity.clearParam()
-
+# velocity mode test
 Send_Dynamixel_Velocity(dxl_goal_velocity)
 time.sleep(2)
-
-def Read_Dynamixel_Velocity():
-    # syncread present position
-    dxl_comm_result = groupSyncReadVelocity.txRxPacket()
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    else:
-        for i in range(0,len(DXL_ID)):
-            dxl_present_velocity[i] = groupSyncReadVelocity.getData(DXL_ID[i], ADDR_PRESENT_VELOCITY, LEN_PRESENT_VELOCITY)
-            dxl_present_velocity[i] = struct.unpack('i', struct.pack('I', dxl_present_velocity[i]))[0]
-
-            if abs(dxl_present_velocity[i] - dxl_goal_velocity*663) <= DXL_MOVING_VELOCITY_THRESHOLD:
-                print("dxl_goal_velocity:%03d  dxl_present_velocity[%03d]:%03d velocity normal"\
-                    % (dxl_goal_velocity, DXL_ID[i], dxl_present_velocity[0]/663))
-            else:
-                print("dxl_goal_velocity:%03d  dxl_present_velocity[%03d]:%03d velocity abnormal"\
-                    % (dxl_goal_velocity, DXL_ID[i], dxl_present_velocity[0]/663))
-                quit()
-Read_Dynamixel_Velocity()
-
+# Read_Dynamixel_Velocity()
+# time.sleep(0.001)
 Send_Dynamixel_Velocity(0)
 time.sleep(0.5)
 
-
-
-
+# Set dynamixel operating mode to CURRENT_CONTROL_MODE
 for i in range(0,len(DXL_ID)):
-    Disable_Dynamixel(DXL_ID[i])
     Set_Dynamixel_Operating_mode(DXL_ID[i], CURRENT_CONTROL_MODE)
-    Enable_Dynamixel(DXL_ID[i])
 
-def Send_Dynamixel_Current(Current):
-    print("Testing current mode!")
-    # Allocate goal Current value into byte array
-    param_goal_Current = [DXL_LOBYTE(DXL_LOWORD(Current)), DXL_HIBYTE(DXL_LOWORD(Current)), DXL_LOBYTE(DXL_HIWORD(Current)), DXL_HIBYTE(DXL_HIWORD(Current))]
-    for i in range(0,len(DXL_ID)):
-        # Add Dynamixel goal Current value to the Syncwrite parameter storage
-        dxl_addparam_result = groupSyncWriteCurrent.addParam(DXL_ID[i], param_goal_Current)
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncWrite addparam failed" % DXL_ID[i])
-            quit()
-
-    # Syncwrite goal Current
-    dxl_comm_result = groupSyncWriteCurrent.txPacket()
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    else:
-        print("Send_Dynamixel_Current success")
-
-    # Clear syncwrite parameter storage
-    groupSyncWriteCurrent.clearParam()
-
-Send_Dynamixel_Current(DXL_ID[i], dxl_goal_current)
+# current mode test
+Send_Dynamixel_Current(dxl_goal_current)
 time.sleep(2)
-
-
-def Read_Dynamixel_Current():
-    # syncread present position
-    dxl_comm_result = groupSyncReadCurrent.txRxPacket()
-    
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    else:
-        for i in range(0,len(DXL_ID)):
-            dxl_present_current[i] = groupSyncReadCurrent.getData(DXL_ID[i], ADDR_PRESENT_CURRENT, LEN_PRESENT_CURRENT)
-            dxl_present_current[i] = struct.unpack('i', struct.pack('I', dxl_present_current[i]))[0]
-
-            if abs(dxl_present_current[0] - dxl_goal_current) <= DXL_MOVING_CURRENT_THRESHOLD:
-                print("dxl_goal_current:%03d  dxl_present_current[%03d]:%03d current normal"\
-                    % (dxl_goal_current, DXL_ID[i], dxl_present_current[i]))
-            else:
-                print("dxl_goal_current:%03d  dxl_present_current[%03d]:%03d current abnormal"\
-                    % (dxl_goal_current, DXL_ID[i], dxl_present_current[i]))
-                quit()
-Read_Dynamixel_Current()
- 
+# Read_Dynamixel_Current()
 Send_Dynamixel_Current(0)
 time.sleep(0.5)
 
-
-
-
+# Set dynamixel operating mode to POSITION_CONTROL_Mode
 for i in range(0,len(DXL_ID)):
-    Disable_Dynamixel(DXL_ID[i])
     Set_Dynamixel_Operating_mode(DXL_ID[i], POSITION_CONTROL_Mode)
-    Enable_Dynamixel(DXL_ID[i])
 
-for i in range(0,len(DXL_ID)):
-    Dynamixel_Homing(DXL_ID[i])
+# dynamixel homing
+Dynamixel_Homing()
 time.sleep(1)
 
+# disable torque
 for i in range(0,len(DXL_ID)):
-    Disable_Dynamixel(DXL_ID[i])
+    Set_Dynamixel_Torque(DXL_ID[i],TORQUE_DISABLE)
 time.sleep(0.1)
 
-
+# Control table backup
 for i in range(0,len(DXL_ID)):
     Control_Table_Backup(DXL_ID[i])
 
