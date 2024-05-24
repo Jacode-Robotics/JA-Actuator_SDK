@@ -53,7 +53,7 @@
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the Dynamixel
 
 // Default setting
-const uint8_t JA_ID[] =                 {1};
+const uint8_t JA_ID[] =                 {1, 2, 3, 4, 5, 6};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -168,8 +168,61 @@ int main()
     return 0;
   }
 
+  // Allocate goal position value into byte array
+  param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[0]));
+  param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[0]));
+  param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[0]));
+  param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[0]));
+
+  // Homing
   for (size_t i = 0; i < sizeof(JA_ID); i++)
   {
+    // Enable Torque
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+      printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+    }
+    else
+    {
+      printf("Dynamixel#%d has been successfully connected \n", JA_ID[i]);
+    }
+
+    // Add goal position value to the Syncwrite storage
+    dxl_addparam_result = groupSyncWrite.addParam(JA_ID[i], param_goal_position);
+    if (dxl_addparam_result != true)
+    {
+      fprintf(stderr, "[ID:%03d] groupSyncWrite addparam failed", JA_ID[i]);
+      return 0;
+    }
+  }
+
+  // Syncwrite goal position
+  dxl_comm_result = groupSyncWrite.txPacket();
+  if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+
+  // Clear syncwrite parameter storage
+  groupSyncWrite.clearParam();    
+  std::chrono::milliseconds delay(3000);
+  std::this_thread::sleep_for(delay);
+
+  for (size_t i = 0; i < sizeof(JA_ID); i++)
+  {
+    // Disable Torque
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+      printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+    }
+
     // Disable Profile
     dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_DRIVE_MODE, PROFILE_DISABLE, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
@@ -196,7 +249,7 @@ int main()
       printf("Dynamixel#%d has been successfully connected \n", JA_ID[i]);
     }
 
-    // Add parameter storage for Dynamixel#1 present position value
+    // Add parameter storage for present position value
     dxl_addparam_result = groupSyncRead.addParam(JA_ID[i]);
     if (dxl_addparam_result != true)
     {
@@ -270,6 +323,17 @@ int main()
   {
     // Disable Torque
     dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    }
+    else if (dxl_error != 0)
+    {
+      printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+    }
+
+    // Enable Profile
+    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_DRIVE_MODE, PROFILE_ENABLE, &dxl_error);
     if (dxl_comm_result != COMM_SUCCESS)
     {
       printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
