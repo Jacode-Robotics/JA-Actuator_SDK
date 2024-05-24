@@ -136,11 +136,11 @@ int main()
   size_t index = 0;
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
-  // bool dxl_getdata_result = false;                  // GetParam result
+  bool dxl_getdata_result = false;                  // GetParam result
   int dxl_goal_position[] = {0, 1, 5, 10, 18, 28, 41, 56, 73, 92, 114, 137, 164, 192, 223, 256, 291, 328, 368, 410, 455, 501, 550, 601, 655, 710, 768, 828, 891, 956, 1023, 1092, 1164, 1237, 1313, 1388, 1464, 1539, 1614, 1690, 1765, 1840, 1916, 1991, 2067, 2142, 2217, 2293, 2368, 2443, 2519, 2594, 2670, 2745, 2820, 2896, 2971, 3046, 3122, 3197, 3273, 3348, 3423, 3499, 3574, 3649, 3725, 3800, 3872, 3943, 4011, 4077, 4141, 4202, 4261, 4318, 4372, 4425, 4475, 4522, 4568, 4611, 4652, 4691, 4727, 4761, 4793, 4822, 4850, 4875, 4897, 4918, 4936, 4952, 4966, 4977, 4986, 4993, 4997, 5000, 5000, 4997, 4993, 4986, 4977, 4966, 4952, 4936, 4918, 4897, 4875, 4850, 4822, 4793, 4761, 4727, 4691, 4652, 4611, 4568, 4522, 4475, 4425, 4372, 4318, 4261, 4202, 4141, 4077, 4011, 3943, 3872, 3800, 3725, 3649, 3574, 3499, 3423, 3348, 3273, 3197, 3122, 3046, 2971, 2896, 2820, 2745, 2670, 2594, 2519, 2443, 2368, 2293, 2217, 2142, 2067, 1991, 1916, 1840, 1765, 1690, 1614, 1539, 1464, 1388, 1313, 1237, 1164, 1092, 1023, 956, 891, 828, 768, 710, 655, 601, 550, 501, 455, 410, 368, 328, 291, 256, 223, 192, 164, 137, 114, 92, 73, 56, 41, 28, 18, 10, 5, 1, 0};
   uint8_t dxl_error = 0;                            // Dynamixel error
   uint8_t param_goal_position[4];
-  // int32_t dxl1_present_position = 0, dxl2_present_position = 0;                         // Present position
+  int32_t present_position = 0;                         // Present position
 
   // Open port
   if (portHandler->openPort())
@@ -219,8 +219,32 @@ int main()
       param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index]));
       param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]));
 
+      // Syncread present position
+      dxl_comm_result = groupSyncRead.txRxPacket();
+
       for (size_t i = 0; i < sizeof(JA_ID); i++)
       {
+        if (dxl_comm_result != COMM_SUCCESS)
+        {
+          printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+        }
+        else if (groupSyncRead.getError(JA_ID[i], &dxl_error))
+        {
+          printf("[ID:%03d] %s\n", JA_ID[i], packetHandler->getRxPacketError(dxl_error));
+        }
+
+        // Check if groupsyncread data is available
+        dxl_getdata_result = groupSyncRead.isAvailable(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+        if (dxl_getdata_result != true)
+        {
+          fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", JA_ID[i]);
+          return 0;
+        }
+
+        // Get present position value
+        present_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\n", JA_ID[i], dxl_goal_position[index], present_position);
+
         // Add goal position value to the Syncwrite storage
         dxl_addparam_result = groupSyncWrite.addParam(JA_ID[i], param_goal_position);
         if (dxl_addparam_result != true)
