@@ -46,8 +46,8 @@ portHandler = PortHandler(DEVICENAME)
 # Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
 packetHandler = PacketHandler(PROTOCOL_VERSION)
 
-def MODEL_NUMBER(NUMBER):
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, 0, NUMBER)
+def MODEL_NUMBER(ID,NUMBER):
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID, 0, NUMBER)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
@@ -84,8 +84,8 @@ def velocity_control(ID, DATA):
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-def Control_Mode(DATA):
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, 11, DATA)
+def Control_Mode(ID,DATA):
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, 11, DATA)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
@@ -112,34 +112,48 @@ else:
     getch()
     quit()
 
-for i in range(1,7):
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, i, 7, 1)
+DXL_ID = []
+NUMBER = []
+for i in range(1,21):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("ID [%d] ping Succeeded" % i)
+        print('number:%d' % dxl_model_number)
+        DXL_ID.append(i)
+        NUMBER.append(dxl_model_number)
 
-MODEL_NUMBER(5210)
+ID = DXL_ID[0]
+NUM = NUMBER[0]
+     
+MODEL_NUMBER(ID,NUM)
 time.sleep(0.3)
 
-Torque_Enable(DXL_ID, 1)
-time.sleep(1)
+Torque_Enable(ID, 1)
+time.sleep(0.5)
 
-opsition_control(DXL_ID,0)
+opsition_control(ID,0)
 time.sleep(3)
 
-Torque_Enable(DXL_ID,0)
-time.sleep(1)
+Torque_Enable(ID,0)
+time.sleep(0.5)
 
-Control_Mode(1)
-time.sleep(1)
+Control_Mode(ID,1)
+time.sleep(0.5)
 
-Torque_Enable(DXL_ID, 1)
-time.sleep(1)
+Torque_Enable(ID, 1)
+time.sleep(0.5)
 
 while 1:
-    velocity_control(DXL_ID, 100)
+    velocity_control(ID, 100)
     if getch() == chr(0x0d):
         break
 print("Press 'Enter' to continue!")
     
-velocity_control(DXL_ID, 0)
+velocity_control(ID, 0)
 time.sleep(1)
 
 while 1:
@@ -147,19 +161,19 @@ while 1:
         break
     print("Press 'Enter' to continue!")
 
-Torque_Enable(DXL_ID,0)
+Torque_Enable(ID,0)
 time.sleep(1)
 
-Control_Mode(3)
+Control_Mode(ID,4)
 time.sleep(1)
 
-Torque_Enable(DXL_ID, 1)
+Torque_Enable(ID, 1)
 time.sleep(1)
 
-opsition_control(DXL_ID,0)
+opsition_control(ID,0)
 time.sleep(3)
 
-Torque_Enable(DXL_ID, 0)
+Torque_Enable(ID, 0)
 time.sleep(0.5)
 
 # Close port
