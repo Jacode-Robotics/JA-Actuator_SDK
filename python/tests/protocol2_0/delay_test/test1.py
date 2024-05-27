@@ -54,7 +54,7 @@ PROTOCOL_VERSION            = 2.0
 
 # Make sure that each DYNAMIXEL ID should have unique ID.
 # DXL_ID = [1, 2, 3, 4, 5, 6]
-DXL_ID = [1, 2, 3, 4, 5, 6]
+DXL_ID = [2]
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
@@ -141,49 +141,49 @@ for i in range(0, len(DXL_ID)):
         print("[ID:%03d] groupSyncReadPosition addparam failed" % DXL_ID[i])
         quit()
 
-    dxl_addparam_result = groupSyncReadable.addParam(DXL_ID[i])
+    # dxl_addparam_result = groupSyncReadable.addParam(DXL_ID[i])
+    # if dxl_addparam_result != True:
+    #     print("[ID:%03d] groupSyncReadPosition addparam failed" % DXL_ID[i])
+    #     quit()
+
+print("homing!")
+for i in range(0,len(DXL_ID)):
+    # Allocate goal position value into byte array
+    param_goal_position = [DXL_LOBYTE(DXL_LOWORD(0)), DXL_HIBYTE(DXL_LOWORD(0)), DXL_LOBYTE(DXL_HIWORD(0)), DXL_HIBYTE(DXL_HIWORD(0))]
+    # Add Dynamixel goal position value to the Syncwrite parameter storage
+    dxl_addparam_result = groupSyncWritePosition.addParam(DXL_ID[i], param_goal_position)
     if dxl_addparam_result != True:
-        print("[ID:%03d] groupSyncReadPosition addparam failed" % DXL_ID[i])
+        print("[ID:%03d] groupSyncWritePosition addparam failed" % DXL_ID[i])
         quit()
 
-    print("homing!")
-    for i in range(0,len(DXL_ID)):
-        # Allocate goal position value into byte array
-        param_goal_position = [DXL_LOBYTE(DXL_LOWORD(0)), DXL_HIBYTE(DXL_LOWORD(0)), DXL_LOBYTE(DXL_HIWORD(0)), DXL_HIBYTE(DXL_HIWORD(0))]
-        # Add Dynamixel goal position value to the Syncwrite parameter storage
-        dxl_addparam_result = groupSyncWritePosition.addParam(DXL_ID[i], param_goal_position)
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncWritePosition addparam failed" % DXL_ID[i])
-            quit()
+# Syncwrite goal position
+dxl_comm_result = groupSyncWritePosition.txPacket()
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+else:
+    print("Send_Dynamixel_Position success")
 
-    # Syncwrite goal position
-    dxl_comm_result = groupSyncWritePosition.txPacket()
+# Clear syncwrite parameter storage
+groupSyncWritePosition.clearParam()
+
+while 1:
+    num = 0
+
+    # syncread present position
+    dxl_comm_result = groupSyncReadPosition.txRxPacket()
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     else:
-        print("Send_Dynamixel_Position success")
-
-    # Clear syncwrite parameter storage
-    groupSyncWritePosition.clearParam()
-
-    while 1:
-        num = 0
-
-        # syncread present position
-        dxl_comm_result = groupSyncReadPosition.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        else:
-            for i in range(0,len(DXL_ID)):
-                dxl_present_position[i] = groupSyncReadPosition.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-                dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0]
-                print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position[i]))
-
         for i in range(0,len(DXL_ID)):
-            if abs(dxl_present_position[i] - dxl_goal_position[i]) <= DXL_MOVING_STATUS_THRESHOLD:
-                num += 1
-        if num == 6:
-            break
+            dxl_present_position[i] = groupSyncReadPosition.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+            dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0]
+            print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position[i]))
+
+    for i in range(0,len(DXL_ID)):
+        if abs(dxl_present_position[i] - dxl_goal_position[i]) <= DXL_MOVING_STATUS_THRESHOLD:
+            num += 1
+    if num == 6:
+        break
 
 for i in range(0,len(DXL_ID)):
     # Disable trajectory profile
@@ -193,24 +193,35 @@ for i in range(0,len(DXL_ID)):
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-param_goal_position = [0x00,0x00,0x00,0x00]
+param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[0]))]
 for i in range(0,len(DXL_ID)):
     # Add Dynamixel goal position value to the Syncwrite parameter storage
     dxl_addparam_result = groupSyncWritePosition.addParam(DXL_ID[i], param_goal_position)
 
-param_goal_able = [0x01]
-for i in range(0,len(DXL_ID)):
-    dxl_addparam_result = groupSyncWriteable.addParam(DXL_ID[i], param_goal_able)
+# param_goal_able = [0x01]
+# for i in range(0,len(DXL_ID)):
+#     dxl_addparam_result = groupSyncWriteable.addParam(DXL_ID[i], param_goal_able)
 while 1:
 
     dxl_comm_result = groupSyncWritePosition.txPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    # else:
+    #     print(f"Write Dynamixel position successfully")
     time.sleep(0.0012)
 
     dxl_comm_result = groupSyncReadPosition.txRxPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    else:
+        for i in range(0,len(DXL_ID)):
+            dxl_present_position[i] = groupSyncReadPosition.getData(DXL_ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
+            dxl_present_position[i] = struct.unpack('i', struct.pack('I', dxl_present_position[i]))[0]
+    #         print(f"[ID:%03d] Goalpos:%03d  Prespos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position[i]))
     time.sleep(0.01)
 
 for i in range(0, len(DXL_ID)):
-    # Enable Dynamixel Torque
+    # disable Dynamixel Torque
     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
