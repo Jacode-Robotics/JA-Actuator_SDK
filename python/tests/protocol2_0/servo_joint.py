@@ -54,7 +54,7 @@ PROTOCOL_VERSION            = 2.0
 
 # Make sure that each DYNAMIXEL ID should have unique ID.
 # DXL_ID = [1, 2, 3, 4, 5, 6]
-DXL_ID = [1]
+DXL_ID = [1, 2, 3, 4, 5, 6]
 
 
 
