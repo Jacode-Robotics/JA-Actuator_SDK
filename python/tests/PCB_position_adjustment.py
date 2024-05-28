@@ -128,7 +128,7 @@ for i in range(1,21):
 
 ID = DXL_ID[0]
 NUM = NUMBER[0]
-     
+
 MODEL_NUMBER(ID,NUM)
 time.sleep(0.3)
 
