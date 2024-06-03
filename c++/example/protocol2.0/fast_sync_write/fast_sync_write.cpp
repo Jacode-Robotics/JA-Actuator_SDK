@@ -125,11 +125,8 @@ int main()
   // Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
   dynamixel::PacketHandler *packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
 
-  // Initialize GroupSyncWrite instance
-  dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
-
-  // Initialize GroupFastSyncWrite instance for Present Position
-  dynamixel::GroupFastSyncWrite groupFastSyncWrite(portHandler, packetHandler, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+  // Initialize GroupFastSyncWrite instance for Goal Position and Present Position
+  dynamixel::GroupFastSyncWrite groupFastSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
   int index = 0;
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
@@ -167,51 +164,35 @@ int main()
     return 0;
   }
 
-  // Enable DYNAMIXEL#1 Torque
-  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS)
-  {
-    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-  }
-  else if (dxl_error != 0)
-  {
-    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-  }
-  else
-  {
-    printf("DYNAMIXEL#%d has been successfully connected \n", DXL1_ID);
-  }
+  // // Enable DYNAMIXEL#1 Torque
+  // dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+  // if (dxl_comm_result != COMM_SUCCESS)
+  // {
+  //   printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  // }
+  // else if (dxl_error != 0)
+  // {
+  //   printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  // }
+  // else
+  // {
+  //   printf("DYNAMIXEL#%d has been successfully connected \n", DXL1_ID);
+  // }
 
-  // Enable DYNAMIXEL#2 Torque
-  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL2_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
-  if (dxl_comm_result != COMM_SUCCESS)
-  {
-    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-  }
-  else if (dxl_error != 0)
-  {
-    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-  }
-  else
-  {
-    printf("DYNAMIXEL#%d has been successfully connected \n", DXL2_ID);
-  }
-
-  // Add parameter storage for DYNAMIXEL#1 present position value
-  dxl_addparam_result = groupFastSyncWrite.addParam(DXL1_ID);
-  if (dxl_addparam_result != true)
-  {
-    fprintf(stderr, "[ID:%03d] groupSyncRead addparam failed", DXL1_ID);
-    return 0;
-  }
-
-  // Add parameter storage for Dynamixel#2 present position value
-  dxl_addparam_result = groupFastSyncWrite.addParam(DXL2_ID);
-  if (dxl_addparam_result != true)
-  {
-    fprintf(stderr, "[ID:%03d] groupSyncRead addparam failed", DXL2_ID);
-    return 0;
-  }
+  // // Enable DYNAMIXEL#2 Torque
+  // dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL2_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+  // if (dxl_comm_result != COMM_SUCCESS)
+  // {
+  //   printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  // }
+  // else if (dxl_error != 0)
+  // {
+  //   printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  // }
+  // else
+  // {
+  //   printf("DYNAMIXEL#%d has been successfully connected \n", DXL2_ID);
+  // }
 
   while(1)
   {
@@ -219,38 +200,31 @@ int main()
     if (getch() == ESC_ASCII_VALUE)
       break;
 
-    // Allocate goal position value into byte array
-    param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[index]));
-    param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[index]));
-    param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index]));
-    param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]));
-
-    // Add DYNAMIXEL#1 goal position value to the Syncwrite storage
-    dxl_addparam_result = groupSyncWrite.addParam(DXL1_ID, param_goal_position);
-    if (dxl_addparam_result != true)
-    {
-      fprintf(stderr, "[ID:%03d] groupSyncWrite addparam failed", DXL1_ID);
-      return 0;
-    }
-
-    // Add DYNAMIXEL#2 goal position value to the Syncwrite parameter storage
-    dxl_addparam_result = groupSyncWrite.addParam(DXL2_ID, param_goal_position);
-    if (dxl_addparam_result != true)
-    {
-      fprintf(stderr, "[ID:%03d] groupSyncWrite addparam failed", DXL2_ID);
-      return 0;
-    }
-
-    // Syncwrite goal position
-    dxl_comm_result = groupSyncWrite.txPacket();
-    if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-
-    // Clear syncwrite parameter storage
-    groupSyncWrite.clearParam();
-
     do
     {
-      // Syncread present position
+      // Allocate goal position value into byte array
+      param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[index]));
+      param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[index]));
+      param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index]));
+      param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]));
+
+      // Add DYNAMIXEL#1 goal position value to the FastSyncwrite storage
+      dxl_addparam_result = groupFastSyncWrite.addParam(DXL1_ID, param_goal_position);
+      if (dxl_addparam_result != true)
+      {
+        fprintf(stderr, "[ID:%03d] groupFastSyncWrite addparam failed", DXL1_ID);
+        return 0;
+      }
+
+      // Add DYNAMIXEL#2 goal position value to the FastSyncwrite parameter storage
+      dxl_addparam_result = groupFastSyncWrite.addParam(DXL2_ID, param_goal_position);
+      if (dxl_addparam_result != true)
+      {
+        fprintf(stderr, "[ID:%03d] groupFastSyncWrite addparam failed", DXL2_ID);
+        return 0;
+      }
+
+      // FastSync write goal position and present position
       dxl_comm_result = groupFastSyncWrite.txRxPacket();
       if (dxl_comm_result != COMM_SUCCESS)
       {
@@ -286,6 +260,9 @@ int main()
 
       // Get DYNAMIXEL#2 present position value
       dxl2_present_position = groupFastSyncWrite.getData(DXL2_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+
+      // Clear syncwrite parameter storage
+      groupFastSyncWrite.clearParam();
 
       printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
 

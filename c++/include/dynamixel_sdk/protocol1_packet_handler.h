@@ -531,6 +531,7 @@ class WINDECLSPEC Protocol1PacketHandler : public PacketHandler
   int bulkWriteTxOnly (PortHandler *port, uint8_t *param, uint16_t param_length);
 
   int fastSyncReadTx(PortHandler *port, uint16_t start_address, uint16_t data_length, uint8_t *param, uint16_t param_length);
+  int fastSyncWriteTx(PortHandler *port, uint16_t start_address, uint16_t data_length, uint8_t *param, uint16_t param_length);
   int fastBulkReadTx(PortHandler *port, uint8_t *param, uint16_t param_length);
 };
 
