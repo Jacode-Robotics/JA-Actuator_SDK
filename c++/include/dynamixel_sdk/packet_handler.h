@@ -63,6 +63,7 @@
 #define INST_BULK_WRITE         147     // 0x93
 // Fast
 const uint8_t INST_FAST_SYNC_READ = 0x8A;
+const uint8_t INST_FAST_SYNC_WRITE = 0x8B;
 const uint8_t INST_FAST_BULK_READ = 0x9A;
 
 // Communication Result
@@ -592,6 +593,7 @@ class WINDECLSPEC PacketHandler
   virtual int bulkWriteTxOnly (PortHandler *port, uint8_t *param, uint16_t param_length) = 0;
 
   virtual int fastSyncReadTx(PortHandler *port, uint16_t start_address, uint16_t data_length, uint8_t *param, uint16_t param_length) = 0;
+  virtual int fastSyncWriteTx(PortHandler *port, uint16_t start_address, uint16_t data_length, uint8_t *param, uint16_t param_length) = 0;
   virtual int fastBulkReadTx(PortHandler *port, uint8_t *param, uint16_t param_length) = 0;
 };
 

@@ -759,6 +759,11 @@ int Protocol1PacketHandler::fastSyncReadTx(PortHandler *port, uint16_t start_add
     return COMM_NOT_AVAILABLE;
 }
 
+int Protocol1PacketHandler::fastSyncWriteTx(PortHandler *port, uint16_t start_address, uint16_t data_length, uint8_t *param, uint16_t param_length)
+{
+    return COMM_NOT_AVAILABLE;
+}
+
 int Protocol1PacketHandler::fastBulkReadTx(PortHandler *port, uint8_t *param, uint16_t param_length)
 {
     return COMM_NOT_AVAILABLE;
