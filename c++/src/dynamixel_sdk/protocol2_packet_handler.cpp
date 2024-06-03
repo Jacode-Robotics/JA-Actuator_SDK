@@ -350,19 +350,19 @@ int Protocol2PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket, bool 
         if (rx_length < wait_length)
         {
           // check timeout
-          if (port->isPacketTimeout() == true)
-          {
-            if (rx_length == 0)
-            {
-              result = COMM_RX_TIMEOUT;
-            }
-            else
-            {
-              result = COMM_RX_CORRUPT;
-            }
-            break;
-          }
-          else
+          // if (port->isPacketTimeout() == true)
+          // {
+          //   if (rx_length == 0)
+          //   {
+          //     result = COMM_RX_TIMEOUT;
+          //   }
+          //   else
+          //   {
+          //     result = COMM_RX_CORRUPT;
+          //   }
+          //   break;
+          // }
+          // else
           {
             continue;
           }
@@ -392,18 +392,18 @@ int Protocol2PacketHandler::rxPacket(PortHandler *port, uint8_t *rxpacket, bool 
     else
     {
       // check timeout
-      if (port->isPacketTimeout() == true)
-      {
-        if (rx_length == 0)
-        {
-          result = COMM_RX_TIMEOUT;
-        }
-        else
-        {
-          result = COMM_RX_CORRUPT;
-        }
-        break;
-      }
+      // if (port->isPacketTimeout() == true)
+      // {
+      //   if (rx_length == 0)
+      //   {
+      //     result = COMM_RX_TIMEOUT;
+      //   }
+      //   else
+      //   {
+      //     result = COMM_RX_CORRUPT;
+      //   }
+      //   break;
+      // }
     }
 #if defined(__linux__) || defined(__APPLE__)
     usleep(0);
