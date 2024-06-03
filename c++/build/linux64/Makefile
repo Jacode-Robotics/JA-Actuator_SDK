@@ -54,6 +54,7 @@ SOURCES  = src/dynamixel_sdk/group_bulk_read.cpp \
            src/dynamixel_sdk/group_sync_write.cpp \
            src/dynamixel_sdk/group_fast_bulk_read.cpp \
            src/dynamixel_sdk/group_fast_sync_read.cpp \
+           src/dynamixel_sdk/group_fast_sync_write.cpp \
            src/dynamixel_sdk/group_handler.cpp \
            src/dynamixel_sdk/packet_handler.cpp \
            src/dynamixel_sdk/port_handler.cpp \
