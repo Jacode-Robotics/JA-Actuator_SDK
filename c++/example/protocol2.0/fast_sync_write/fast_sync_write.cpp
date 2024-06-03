@@ -35,17 +35,16 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <thread>
 
 #include "dynamixel_sdk.h"                                  // Uses DYNAMIXEL SDK library
 
 // Control table address
 #define ADDR_PRO_TORQUE_ENABLE          512                 // Control table address is different in DYNAMIXEL model
 #define ADDR_PRO_GOAL_POSITION          564
-#define ADDR_PRO_PRESENT_POSITION       580
 
 // Data Byte Length
 #define LEN_PRO_GOAL_POSITION           4
-#define LEN_PRO_PRESENT_POSITION        4
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the DYNAMIXEL
@@ -59,9 +58,6 @@
 
 #define TORQUE_ENABLE                   1                   // Value for enabling the torque
 #define TORQUE_DISABLE                  0                   // Value for disabling the torque
-#define DXL_MINIMUM_POSITION_VALUE      -1000               // DYNAMIXEL will rotate between this value
-#define DXL_MAXIMUM_POSITION_VALUE      1000                // and this value (note that the DYNAMIXEL would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
-#define DXL_MOVING_STATUS_THRESHOLD     20                  // DYNAMIXEL moving status threshold
 
 #define ESC_ASCII_VALUE                 0x1b
 
@@ -132,7 +128,8 @@ int main()
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
   bool dxl_getdata_result = false;                  // GetParam result
-  int dxl_goal_position[2] = {DXL_MINIMUM_POSITION_VALUE, DXL_MAXIMUM_POSITION_VALUE};  // Goal position
+  int dxl_goal_position[] = {0, 1, 5, 10, 18, 28, 41, 56, 73, 92, 114, 137, 164, 192, 223, 256, 291, 328, 368, 410, 455, 501, 550, 601, 655, 710, 768, 828, 891, 956, 1023, 1092, 1164, 1237, 1313, 1388, 1464, 1539, 1614, 1690, 1765, 1840, 1916, 1991, 2067, 2142, 2217, 2293, 2368, 2443, 2519, 2594, 2670, 2745, 2820, 2896, 2971, 3046, 3122, 3197, 3273, 3348, 3423, 3499, 3574, 3649, 3725, 3800, 3872, 3943, 4011, 4077, 4141, 4202, 4261, 4318, 4372, 4425, 4475, 4522, 4568, 4611, 4652, 4691, 4727, 4761, 4793, 4822, 4850, 4875, 4897, 4918, 4936, 4952, 4966, 4977, 4986, 4993, 4997, 5000, 5000, 4997, 4993, 4986, 4977, 4966, 4952, 4936, 4918, 4897, 4875, 4850, 4822, 4793, 4761, 4727, 4691, 4652, 4611, 4568, 4522, 4475, 4425, 4372, 4318, 4261, 4202, 4141, 4077, 4011, 3943, 3872, 3800, 3725, 3649, 3574, 3499, 3423, 3348, 3273, 3197, 3122, 3046, 2971, 2896, 2820, 2745, 2670, 2594, 2519, 2443, 2368, 2293, 2217, 2142, 2067, 1991, 1916, 1840, 1765, 1690, 1614, 1539, 1464, 1388, 1313, 1237, 1164, 1092, 1023, 956, 891, 828, 768, 710, 655, 601, 550, 501, 455, 410, 368, 328, 291, 256, 223, 192, 164, 137, 114, 92, 73, 56, 41, 28, 18, 10, 5, 1, 0};
+  int goal_position_size = sizeof(dxl_goal_position) / sizeof(int);
 
   uint8_t dxl_error = 0;                            // DYNAMIXEL error
   uint8_t param_goal_position[4];
@@ -164,35 +161,35 @@ int main()
     return 0;
   }
 
-  // // Enable DYNAMIXEL#1 Torque
-  // dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
-  // if (dxl_comm_result != COMM_SUCCESS)
-  // {
-  //   printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-  // }
-  // else if (dxl_error != 0)
-  // {
-  //   printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-  // }
-  // else
-  // {
-  //   printf("DYNAMIXEL#%d has been successfully connected \n", DXL1_ID);
-  // }
+  // Enable DYNAMIXEL#1 Torque
+  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL1_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+  if (dxl_comm_result != COMM_SUCCESS)
+  {
+    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  }
+  else if (dxl_error != 0)
+  {
+    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  }
+  else
+  {
+    printf("DYNAMIXEL#%d has been successfully connected \n", DXL1_ID);
+  }
 
-  // // Enable DYNAMIXEL#2 Torque
-  // dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL2_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
-  // if (dxl_comm_result != COMM_SUCCESS)
-  // {
-  //   printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-  // }
-  // else if (dxl_error != 0)
-  // {
-  //   printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-  // }
-  // else
-  // {
-  //   printf("DYNAMIXEL#%d has been successfully connected \n", DXL2_ID);
-  // }
+  // Enable DYNAMIXEL#2 Torque
+  dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, DXL2_ID, ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
+  if (dxl_comm_result != COMM_SUCCESS)
+  {
+    printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+  }
+  else if (dxl_error != 0)
+  {
+    printf("%s\n", packetHandler->getRxPacketError(dxl_error));
+  }
+  else
+  {
+    printf("DYNAMIXEL#%d has been successfully connected \n", DXL2_ID);
+  }
 
   while(1)
   {
@@ -200,7 +197,7 @@ int main()
     if (getch() == ESC_ASCII_VALUE)
       break;
 
-    do
+    for (index = 0; index < goal_position_size; index++)
     {
       // Allocate goal position value into byte array
       param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[index]));
@@ -224,7 +221,7 @@ int main()
         return 0;
       }
 
-      // FastSync write goal position and present position
+      // FastSyncWrite write goal position and present position
       dxl_comm_result = groupFastSyncWrite.txRxPacket();
       if (dxl_comm_result != COMM_SUCCESS)
       {
@@ -240,7 +237,7 @@ int main()
       }
 
       // Check if groupFastSyncWrite data of DYNAMIXEL#1 is available
-      dxl_getdata_result = groupFastSyncWrite.isAvailable(DXL1_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      dxl_getdata_result = groupFastSyncWrite.isAvailable(DXL1_ID, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
       if (dxl_getdata_result != true)
       {
         fprintf(stderr, "[ID:%03d] groupFastSyncWrite getdata failed", DXL1_ID);
@@ -248,7 +245,7 @@ int main()
       }
 
       // Check if groupFastSyncWrite data of DYNAMIXEL#2 is available
-      dxl_getdata_result = groupFastSyncWrite.isAvailable(DXL2_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      dxl_getdata_result = groupFastSyncWrite.isAvailable(DXL2_ID, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
       if (dxl_getdata_result != true)
       {
         fprintf(stderr, "[ID:%03d] groupFastSyncWrite getdata failed", DXL2_ID);
@@ -256,26 +253,18 @@ int main()
       }
 
       // Get DYNAMIXEL#1 present position value
-      dxl1_present_position = groupFastSyncWrite.getData(DXL1_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      dxl1_present_position = groupFastSyncWrite.getData(DXL1_ID, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
       // Get DYNAMIXEL#2 present position value
-      dxl2_present_position = groupFastSyncWrite.getData(DXL2_ID, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      dxl2_present_position = groupFastSyncWrite.getData(DXL2_ID, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
       // Clear syncwrite parameter storage
       groupFastSyncWrite.clearParam();
 
       printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t[ID:%03d] GoalPos:%03d  PresPos:%03d\n", DXL1_ID, dxl_goal_position[index], dxl1_present_position, DXL2_ID, dxl_goal_position[index], dxl2_present_position);
-
-    }while((abs(dxl_goal_position[index] - dxl1_present_position) > DXL_MOVING_STATUS_THRESHOLD) || (abs(dxl_goal_position[index] - dxl2_present_position) > DXL_MOVING_STATUS_THRESHOLD));
-
-    // Change goal position
-    if (index == 0)
-    {
-      index = 1;
-    }
-    else
-    {
-      index = 0;
+    
+      std::chrono::milliseconds delay(10);
+      std::this_thread::sleep_for(delay);
     }
   }
 
