@@ -24,8 +24,8 @@ import serial
 import sys
 import platform
 
-LATENCY_TIMER = 1
-DEFAULT_BAUDRATE = 2000000
+LATENCY_TIMER = 16
+DEFAULT_BAUDRATE = 1000000
 
 
 class PortHandler(object):
