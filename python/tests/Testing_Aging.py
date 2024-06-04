@@ -2,6 +2,7 @@ import os
 import struct
 import time
 import keyboard
+import ctypes
 
 if os.name == 'nt':
     import msvcrt
@@ -39,6 +40,7 @@ DEVICENAME                  = 'COM15'
 #THE data of calibrate the zero position is 17
 ZERO_POSITION               = 17
 
+SOURCE                      = 0
 # Initialize PortHandler instance
 # Set the port path
 # Get methods and members of PortHandlerLinux or PortHandlerWindows
@@ -126,9 +128,41 @@ def on_key_pressed(event):
 
 keyboard.on_press(on_key_pressed)
 
-if portHandler.openPort():
-    print("Succeeded to open the port")
+def Power_judgment():
+
+    for i in range(1,30):
+        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+        if dxl_comm_result != COMM_SUCCESS:
+            continue
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            global SOURCE
+            SOURCE = 1
+            print("Succeeded to open the port")
+            print("Succeeded to change the baudrate") 
+            break
+
+def is_port_online(port_name):
+    if os.name == 'nt':
+        device_path = f"\\\\.\\{port_name}"
+        handle = ctypes.windll.kernel32.CreateFileW(device_path,0x80000000,0,None,3,0x10000000,None)
+        if handle != -1:
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return True
+        else:
+            return False
+    else:
+        device_path = f"{port_name}"
+        return os.path.exists(device_path)
+
+if is_port_online(DEVICENAME):
+    print(f"{DEVICENAME} on line")
 else:
+    print(f"{DEVICENAME} not online")
+
+# Open port
+if portHandler.openPort() == 0:
     print("Failed to open the port")
     print("Press any key to terminate...")
     getch()
@@ -136,145 +170,148 @@ else:
 
 
 # Set port baudrate
-if portHandler.setBaudRate(BAUDRATE):
-    print("Succeeded to change the baudrate")
-else:
+if portHandler.setBaudRate(BAUDRATE) == 0:
     print("Failed to change the baudrate")
     print("Press any key to terminate...")
     getch()
     quit()
 
-DXL_ID = []
-NUMBER = []
+Power_judgment()
+
+if SOURCE:
+    DXL_ID = []
+    NUMBER = []
 
 
-for i in range(1,21):
-    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-    if dxl_comm_result != COMM_SUCCESS:
-        continue
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("ID [%d] ping Succeeded" % i)
-        print('number:%d' % dxl_model_number)
-        DXL_ID.append(i)
-        NUMBER.append(dxl_model_number)
-        
-    time.sleep(0.5)
+    for i in range(1,21):
+        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+        if dxl_comm_result != COMM_SUCCESS:
+            continue
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("ID [%d] ping Succeeded" % i)
+            print('number:%d' % dxl_model_number)
+            DXL_ID.append(i)
+            NUMBER.append(dxl_model_number)
+            
+        time.sleep(0.5)
 
-
-for i in range(0,len(DXL_ID)):
-    MODEL_NUMBER(DXL_ID[i],NUMBER[i])
-    time.sleep(0.3)
-    Torque_Enable(DXL_ID[i],0)
-    time.sleep(0.2)
-    profile_velocity(DXL_ID[i],500)
-    time.sleep(0.2)
-    Torque_Enable(DXL_ID[i],1)
-  
-    #READ_MODEL_NUMBER(i)
-    #NUMBER = READ_MODEL_NUMBER(i)
-    #MODEL_NUMBER(NUMBER)
-
-#time.sleep(1)
-while 1:
-    id_number = 0
-    for i in range(0,len(DXL_ID)):
-        opsition_control(DXL_ID[i],0)
-        id_number += 1
-    if id_number >= len(DXL_ID):
-        break
-
-time.sleep(4)
-
-while flag:
-    for i in range(0,len(DXL_ID)):
-
-        opsition_control(DXL_ID[i],5000)
-
-    time.sleep(4)
 
     for i in range(0,len(DXL_ID)):
-        opsition_control(DXL_ID[i],-5000)
+        MODEL_NUMBER(DXL_ID[i],NUMBER[i])
+        time.sleep(0.3)
+        Torque_Enable(DXL_ID[i],0)
+        time.sleep(0.2)
+        profile_velocity(DXL_ID[i],500)
+        time.sleep(0.2)
+        Torque_Enable(DXL_ID[i],1)
     
-    print('succeeded')
+        #READ_MODEL_NUMBER(i)
+        #NUMBER = READ_MODEL_NUMBER(i)
+        #MODEL_NUMBER(NUMBER)
+
+    #time.sleep(1)
+    while 1:
+        id_number = 0
+        for i in range(0,len(DXL_ID)):
+            opsition_control(DXL_ID[i],0)
+            id_number += 1
+        if id_number >= len(DXL_ID):
+            break
 
     time.sleep(4)
-    print('press Enter to quit!')
 
-    time.sleep(0.5)
+    while flag:
+        for i in range(0,len(DXL_ID)):
+
+            opsition_control(DXL_ID[i],5000)
+
+        time.sleep(4)
+
+        for i in range(0,len(DXL_ID)):
+            opsition_control(DXL_ID[i],-5000)
+        
+        print('succeeded')
+
+        time.sleep(4)
+        print('press Enter to quit!')
+
+        time.sleep(0.5)
 
 
-'''
-stop = False
-while not stop:
-    while 1:
+    '''
+    stop = False
+    while not stop:
+        while 1:
+            print('press Enter to quit!')
+            time.sleep(0.5)
+            if keyboard.is_pressed('1'):
+                for i in range(0,5):
+                    keyboard.is_pressed('1')
+                    print('quit succeeded')
+                    stop =  True
+                    break
+            else:
+                for i in range(0,len(DXL_ID)):
+                    opsition_control(DXL_ID[i],5000)
+
+                time.sleep(4)
+
+                for i in range(0,len(DXL_ID)):
+                    opsition_control(DXL_ID[i],-5000)
+            
+                print('succeeded')
+
+                time.sleep(4)
+                print('press Enter to quit!')
+
+            time.sleep(1)
+            if keyboard.is_pressed('1'):
+                for i in range(0,5):
+                    keyboard.is_pressed('1')
+                    print('quit succeeded')
+                    stop =  True
+                    break
+            time.sleep(1)
+    '''
+        
+    '''    for i in range(0,len(DXL_ID)):
+            opsition_control(DXL_ID[i],5000)
+        time.sleep(4)
+        for i in range(0,len(DXL_ID)):
+            opsition_control(DXL_ID[i],-5000)
+        print('succeeded')
+        time.sleep(4)
+        time.sleep(1.5)
         print('press Enter to quit!')
         time.sleep(0.5)
         if keyboard.is_pressed('1'):
-            for i in range(0,5):
-                keyboard.is_pressed('1')
-                print('quit succeeded')
-                stop =  True
-                break
-        else:
-            for i in range(0,len(DXL_ID)):
-                opsition_control(DXL_ID[i],5000)
+            print('quit succeeded')
+            break
+        time.sleep(1)'''
 
-            time.sleep(4)
-
-            for i in range(0,len(DXL_ID)):
-                opsition_control(DXL_ID[i],-5000)
-        
-            print('succeeded')
-
-            time.sleep(4)
-            print('press Enter to quit!')
-
+    ''' a = getch()   
+        print('press Enter to quit!')
         time.sleep(1)
-        if keyboard.is_pressed('1'):
-            for i in range(0,5):
-                keyboard.is_pressed('1')
-                print('quit succeeded')
-                stop =  True
-                break
-        time.sleep(1)
-'''
-    
-'''    for i in range(0,len(DXL_ID)):
-        opsition_control(DXL_ID[i],5000)
-    time.sleep(4)
+        if keyboard.is_pressed('enter'):
+            print('quit succeeded')
+            break
+        else:'''
+
     for i in range(0,len(DXL_ID)):
-        opsition_control(DXL_ID[i],-5000)
-    print('succeeded')
+        opsition_control(DXL_ID[i],0)
     time.sleep(4)
-    time.sleep(1.5)
-    print('press Enter to quit!')
-    time.sleep(0.5)
-    if keyboard.is_pressed('1'):
-        print('quit succeeded')
-        break
-    time.sleep(1)'''
 
-''' a = getch()   
-    print('press Enter to quit!')
-    time.sleep(1)
-    if keyboard.is_pressed('enter'):
-        print('quit succeeded')
-        break
-    else:'''
-
-for i in range(0,len(DXL_ID)):
-    opsition_control(DXL_ID[i],0)
-time.sleep(4)
-
-for i in range(0,len(DXL_ID)):
-    Torque_Enable(DXL_ID[i],0)
+    for i in range(0,len(DXL_ID)):
+        Torque_Enable(DXL_ID[i],0)
 
 
-# Close port
-portHandler.closePort()
+    # Close port
+    portHandler.closePort()
 
+else:
+    print("Not powered on/not connected to equipment")
 
 
 

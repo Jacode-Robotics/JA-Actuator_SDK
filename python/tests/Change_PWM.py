@@ -1,5 +1,6 @@
 import os
 import struct
+import ctypes
 
 if os.name == 'nt':
     import msvcrt
@@ -39,8 +40,9 @@ ZERO_POSITION               = 17
 
 MODEL_NUMBER                = 0
 
+SOURCE                      = 0
 
-PWM_Limit                  = 25000
+PWM_Limit                   = 25000
 
 # Initialize PortHandler instance
 # Set the port path
@@ -115,10 +117,41 @@ def Control_Table_Backup(ID):
     else:
         print("Control_Table_Backup succeeded")
 
+def Power_judgment():
 
-if portHandler.openPort():
-    print("Succeeded to open the port")
+    for i in range(1,30):
+        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+        if dxl_comm_result != COMM_SUCCESS:
+            continue
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            global SOURCE
+            SOURCE = 1
+            print("Succeeded to open the port")
+            print("Succeeded to change the baudrate") 
+            break
+
+def is_port_online(port_name):
+    if os.name == 'nt':
+        device_path = f"\\\\.\\{port_name}"
+        handle = ctypes.windll.kernel32.CreateFileW(device_path,0x80000000,0,None,3,0x10000000,None)
+        if handle != -1:
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return True
+        else:
+            return False
+    else:
+        device_path = f"{port_name}"
+        return os.path.exists(device_path)
+
+if is_port_online(DEVICENAME):
+    print(f"{DEVICENAME} on line")
 else:
+    print(f"{DEVICENAME} not online")
+
+# Open port
+if portHandler.openPort() == 0:
     print("Failed to open the port")
     print("Press any key to terminate...")
     getch()
@@ -126,65 +159,69 @@ else:
 
 
 # Set port baudrate
-if portHandler.setBaudRate(BAUDRATE):
-    print("Succeeded to change the baudrate")
-else:
+if portHandler.setBaudRate(BAUDRATE) == 0:
     print("Failed to change the baudrate")
     print("Press any key to terminate...")
     getch()
     quit()
 
-ID = []
+Power_judgment()
 
-for i in range(1,20):
-    dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-    if dxl_comm_result != COMM_SUCCESS:
-        continue
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("[ID:%3d] ping Succeeded. Dynamixel model number : %d" % (i, dxl_model_number))
-        ID.append(i)
+if SOURCE:
 
-print(ID)
-    
-for i in range(0,len(ID)):
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID[i], 36, PWM_Limit)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Change PWM Limit:%d succeeded" %PWM_Limit)
+    ID = []
 
-
-
-for i in range(0, len(ID)):
-    # Add parameter storage for Dynamixel present position value
-    dxl_addparam_result = groupSyncRead.addParam(ID[i])
-    if dxl_addparam_result != True:
-        print("[ID:%03d] groupSyncRead addparam failed" % ID[i])
-        quit()
-
-    # Syncread present position
-    dxl_comm_result = groupSyncRead.txRxPacket()
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    for i in range(1,20):
+        dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+        if dxl_comm_result != COMM_SUCCESS:
+            continue
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("[ID:%3d] ping Succeeded. Dynamixel model number : %d" % (i, dxl_model_number))
+            ID.append(i)
+        
+    for i in range(0,len(ID)):
+        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID[i], 36, PWM_Limit)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Change PWM Limit:%d succeeded" %PWM_Limit)
+            Control_Table_Backup(ID[i])
+            time.sleep(0.2)
 
     for i in range(0, len(ID)):
-        # Get Dynamixel present position value
-        pwmlimit = groupSyncRead.getData(ID[i], 36, 2)
-        pwmlimit = struct.unpack('i', struct.pack('I', pwmlimit))[0];
+        # Add parameter storage for Dynamixel present position value
+        dxl_addparam_result = groupSyncRead.addParam(ID[i])
+        if dxl_addparam_result != True:
+            print("[ID:%03d] groupSyncRead addparam failed" % ID[i])
+            quit()
+        time.sleep(0.2)
+        # Syncread present position
+        dxl_comm_result = groupSyncRead.txRxPacket()
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        print("[ID:%03d] pwmlimit:%03d" % (ID[i] ,pwmlimit))
+        for i in range(0, len(ID)):
+            # Get Dynamixel present position value
+            pwmlimit = groupSyncRead.getData(ID[i], 36, 2)
+            pwmlimit = struct.unpack('i', struct.pack('I', pwmlimit))[0]
 
-for i in range(0,len(ID)):
-    Control_Table_Backup(ID[i])
+            print("[ID:%03d] pwmlimit:%03d" % (ID[i] ,pwmlimit))
 
+    '''
+    for i in range(0,len(ID)):
+        Control_Table_Backup(ID[i])
+    '''
 
-print('\n')
-print('改完PWM断电保存')
-print('\n')
+    print('\n')
+    print('改完PWM断电保存')
+    print('\n')
 
-# Close port
-portHandler.closePort()
+    # Close port
+    portHandler.closePort()
+
+else:
+    print("Not powered on/not connected to equipment")
