@@ -25,5 +25,20 @@ target_link_libraries(
   GTest::gtest_main
 )
 
+add_executable(
+  command_test
+  command_test.cc
+)
+  target_link_libraries(
+    command_test
+    GTest::gtest_main
+    dxl_x64_cpp
+    rt
+)
+
 include(GoogleTest)
 gtest_discover_tests(hello_test)
+gtest_discover_tests(command_test)
+
+# 添加包含路径
+include_directories(${CMAKE_SOURCE_DIR}/c++/include/dynamixel_sdk)
