@@ -35,7 +35,7 @@ NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM15'
+DEVICENAME                  = 'COM21'
 
 #THE data of calibrate the zero position is 17
 ZERO_POSITION               = 17
@@ -182,7 +182,6 @@ if SOURCE:
     DXL_ID = []
     NUMBER = []
 
-
     for i in range(1,21):
         dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
         if dxl_comm_result != COMM_SUCCESS:
@@ -207,11 +206,6 @@ if SOURCE:
         time.sleep(0.2)
         Torque_Enable(DXL_ID[i],1)
     
-        #READ_MODEL_NUMBER(i)
-        #NUMBER = READ_MODEL_NUMBER(i)
-        #MODEL_NUMBER(NUMBER)
-
-    #time.sleep(1)
     while 1:
         id_number = 0
         for i in range(0,len(DXL_ID)):
@@ -219,8 +213,10 @@ if SOURCE:
             id_number += 1
         if id_number >= len(DXL_ID):
             break
-
-    time.sleep(4)
+    while 1:
+        print("press space to continue")
+        if getch() == chr(0x20):
+            break   
 
     while flag:
         for i in range(0,len(DXL_ID)):
@@ -237,67 +233,8 @@ if SOURCE:
         time.sleep(4)
         print('press Enter to quit!')
 
-        time.sleep(0.5)
+        time.sleep(0.1)
 
-
-    '''
-    stop = False
-    while not stop:
-        while 1:
-            print('press Enter to quit!')
-            time.sleep(0.5)
-            if keyboard.is_pressed('1'):
-                for i in range(0,5):
-                    keyboard.is_pressed('1')
-                    print('quit succeeded')
-                    stop =  True
-                    break
-            else:
-                for i in range(0,len(DXL_ID)):
-                    opsition_control(DXL_ID[i],5000)
-
-                time.sleep(4)
-
-                for i in range(0,len(DXL_ID)):
-                    opsition_control(DXL_ID[i],-5000)
-            
-                print('succeeded')
-
-                time.sleep(4)
-                print('press Enter to quit!')
-
-            time.sleep(1)
-            if keyboard.is_pressed('1'):
-                for i in range(0,5):
-                    keyboard.is_pressed('1')
-                    print('quit succeeded')
-                    stop =  True
-                    break
-            time.sleep(1)
-    '''
-        
-    '''    for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],5000)
-        time.sleep(4)
-        for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],-5000)
-        print('succeeded')
-        time.sleep(4)
-        time.sleep(1.5)
-        print('press Enter to quit!')
-        time.sleep(0.5)
-        if keyboard.is_pressed('1'):
-            print('quit succeeded')
-            break
-        time.sleep(1)'''
-
-    ''' a = getch()   
-        print('press Enter to quit!')
-        time.sleep(1)
-        if keyboard.is_pressed('enter'):
-            print('quit succeeded')
-            break
-        else:'''
 
     for i in range(0,len(DXL_ID)):
         opsition_control(DXL_ID[i],0)

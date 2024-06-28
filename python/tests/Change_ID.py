@@ -33,7 +33,7 @@ NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM15'
+DEVICENAME                  = 'COM23'
 
 SOURCE                      = 0
 # Initialize PortHandler instance

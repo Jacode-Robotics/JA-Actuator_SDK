@@ -33,7 +33,7 @@ NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM23'
+DEVICENAME                  = 'COM21'
 
 #THE data of calibrate the zero position is 17
 ZERO_POSITION               = 17
@@ -44,8 +44,10 @@ SOURCE                      = 0
 
 ADDR_PRESENT_POSITION       = 580
 LEN_PRESENT_POSITION        = 4 
-
-
+ADDR_GOAL_CURRENT           = 550
+VALUE_GOAL_CURRENT          = 40       
+OPERATING_MODE              = 11
+CURRENT_CONTROL_MODE        = 0
 HOMING_OFFSET               = 20
 # Initialize PortHandler instance
 # Set the port path
@@ -195,6 +197,45 @@ if SOURCE:
 
     time.sleep(0.4)
 
+    for i in range(0,len(ID)):
+        dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], OPERATING_MODE, CURRENT_CONTROL_MODE)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Change CURRENT_CONTROL_MODE succeeded")
+            time.sleep(0.1)
+
+        dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], 512, 1)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Torque Enable succeeded")
+            time.sleep(0.1)
+
+        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID[i], ADDR_GOAL_CURRENT, VALUE_GOAL_CURRENT)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Change GOAL CURRENT %d succeeded" &VALUE_GOAL_CURRENT)
+
+        time.sleep()
+
+        
+
+
+
+
+
+
+
+
+
     for i in range(0, len(ID)):
         # Add parameter storage for Dynamixel present position value
         dxl_addparam_result = positionRead.addParam(ID[i])
@@ -234,13 +275,6 @@ if SOURCE:
             print("Change Mechanical_zero_position:%d succeeded" % PRESENTPOSITION1[i])
             Control_Table_Backup(ID[i])
             time.sleep(0.3)
-
-
-    '''
-    for i in range(0,len(ID)):
-        Control_Table_Backup(ID[i])
-    '''
-
 
     print('\n')
     print('改完零点断电保存')
