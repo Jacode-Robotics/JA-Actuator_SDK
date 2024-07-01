@@ -1,8 +1,6 @@
 import os
 import struct
 import time
-import os
-import struct
 import keyboard
 
 if os.name == 'nt':
