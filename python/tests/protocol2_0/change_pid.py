@@ -238,6 +238,10 @@ while flag:
     print("Press ESC to exit")
     print("Press any key to continue")
     getch()
-print()
+    
+print('\n')
+print('power-off save')
+print('\n')
+
 # Close port
 portHandler.closePort()
