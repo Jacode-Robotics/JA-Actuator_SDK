@@ -179,7 +179,7 @@ for i in range(0,len(ID)):
     print()
 
 while flag:
-    alter_id = int(input("要修改PID的ID:"))
+    alter_id = int(input("Need to change the PID's ID:"))
     dxl_position_p_gain, dxl_comm_result, dxl_error = packetHandler.read2ByteTxRx(portHandler, alter_id, ADDR_POSITION_P_GAIN)
     dxl_position_p_gain = struct.unpack('i', struct.pack('I', dxl_position_p_gain))[0]
     if dxl_comm_result != COMM_SUCCESS:
@@ -235,8 +235,8 @@ while flag:
         print("change D:%d" %new_d)
     time.sleep(0.2)
     Control_Table_Backup(alter_id)
-    print("esc退出")
-    print("按任意键继续")
+    print("Press ESC to exit")
+    print("Press any key to continue")
     getch()
 print()
 # Close port
