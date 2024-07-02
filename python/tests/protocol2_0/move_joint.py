@@ -58,7 +58,7 @@ DXL_ID = [1, 2, 3, 4, 5, 6]
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM1'
+DEVICENAME                  = '/dev/ttyUSB0'
 
 
 TORQUE_ENABLE               = 1                 # Value for enabling the torque
