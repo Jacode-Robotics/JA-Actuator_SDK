@@ -228,39 +228,6 @@ if SOURCE:
 
         time.sleep(0.3)
 
-    '''
-    ID = DXL_ID
-    MODEL_NUMBER = NUMBER
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID, 0, MODEL_NUMBER)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("%d connected succeeded" % MODEL_NUMBER)
-    time.sleep(0.1)
-
-
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID, 7, NEW_ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("chande the ID succeeded")
-        print('Now ID is %d' % NEW_ID)
-    '''
-    '''
-    Control_Table_Backup(NEW_ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("chande the ID succeeded")
-        print('Now ID is %d' % NEW_ID)
-        Control_Table_Backup(NEW_ID)'''
-
     time.sleep(0.5)
 
 
