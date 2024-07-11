@@ -1,6 +1,5 @@
 import os
 import struct
-import ctypes
 
 if os.name == 'nt':
     import msvcrt
@@ -18,37 +17,32 @@ else:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
         return ch
 
-from dynamixel_sdk import *                 # Uses Dynamixel SDK library
+from dynamixel_sdk import * # Uses Dynamixel SDK library
+
+# Control table address
+ADDR_TORQUE_ENABLE          = 512        # Control table address is different in DYNAMIXEL model
+ADDR_PRESENT_POSITION       = 580
+ADDR_GOAL_POSITION          = 564
+ADDR_MOVING_STATUS          = 571
+BAUDRATE                    = 2000000
 
 # DYNAMIXEL Protocol Version (1.0 / 2.0)
 # https://emanual.robotis.com/docs/en/dxl/protocol2/
 PROTOCOL_VERSION            = 2.0
 
-# Define the proper baudrate to search DYNAMIXELs. Note that XL320's baudrate is 1 M bps.
-BAUDRATE                = 2000000
-
-# Factory default ID of all DYNAMIXEL is 1
-DXL_ID                      = 1
-NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM21'
+DEVICENAME                  = '/dev/ttyUSB0'
 
-#THE data of calibrate the zero position is 17
-ZERO_POSITION               = 17
+TORQUE_ENABLE               = 1     # Value for enabling the torque
+TORQUE_DISABLE              = 0     # Value for disabling the torque
 
-MODEL_NUMBER                = 0
-
-SOURCE                      = 0
-
-ADDR_PRESENT_POSITION       = 580
-LEN_PRESENT_POSITION        = 4 
-ADDR_GOAL_CURRENT           = 550
-VALUE_GOAL_CURRENT          = 40       
-OPERATING_MODE              = 11
-CURRENT_CONTROL_MODE        = 0
 HOMING_OFFSET               = 20
+MINVALUE                    = 0
+MAXVALUE                    = 0
+AVERAGE                     = 0
+MOVING_STATUS               = 0
 # Initialize PortHandler instance
 # Set the port path
 # Get methods and members of PortHandlerLinux or PortHandlerWindows
@@ -58,10 +52,6 @@ portHandler = PortHandler(DEVICENAME)
 # Set the protocol version
 # Get methods and members of Protocol1PacketHandler or Protocol2PacketHandler
 packetHandler = PacketHandler(PROTOCOL_VERSION)
-
-
-groupSyncRead = GroupSyncRead(portHandler, packetHandler, 36, 2)
-positionRead = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
 
 def update_crc(data_blk):
     crc_accum = 0x0000
@@ -122,42 +112,10 @@ def Control_Table_Backup(ID):
         print("Failed to write all bytes")
     else:
         print("Control_Table_Backup succeeded")
-
-def Power_judgment():
-
-    for i in range(1,30):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            global SOURCE
-            SOURCE = 1
-            print("Succeeded to open the port")
-            print("Succeeded to change the baudrate") 
-            break
-
-def is_port_online(port_name):
-    if os.name == 'nt':
-        device_path = f"\\\\.\\{port_name}"
-        handle = ctypes.windll.kernel32.CreateFileW(device_path,0x80000000,0,None,3,0x10000000,None)
-        if handle != -1:
-            ctypes.windll.kernel32.CloseHandle(handle)
-            return True
-        else:
-            return False
-    else:
-        device_path = f"{port_name}"
-        return os.path.exists(device_path)
-
-if is_port_online(DEVICENAME):
-    print(f"{DEVICENAME} on line")
-else:
-    print(f"{DEVICENAME} not online")
-
 # Open port
-if portHandler.openPort() == 0:
+if portHandler.openPort():
+    print("Succeeded to open the port")
+else:
     print("Failed to open the port")
     print("Press any key to terminate...")
     getch()
@@ -165,123 +123,133 @@ if portHandler.openPort() == 0:
 
 
 # Set port baudrate
-if portHandler.setBaudRate(BAUDRATE) == 0:
+if portHandler.setBaudRate(BAUDRATE):
+    print("Succeeded to change the baudrate")
+else:
     print("Failed to change the baudrate")
     print("Press any key to terminate...")
     getch()
     quit()
 
-Power_judgment()
+ID = []
+flag = 1
+for i in range(1,20):
+    dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("[ID:%3d] ping Succeeded. Dynamixel model number : %d" % (i, dxl_model_number))
+        ID.append(i)
 
-if SOURCE:
+print(ID)
 
-    ID = []
-    PRESENTPOSITION = []
-    for i in range(1,20):
-        dxl_model_number, dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("[ID:%3d] ping Succeeded. Dynamixel model number : %d" % (i, dxl_model_number))
-            ID.append(i)
+for i in range(0,len(ID)):
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Disable success")
 
-    for i in range(0,len(ID)):
-        dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, ID[i], HOMING_OFFSET, 0)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        time.sleep(0.4)
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, ID[i], HOMING_OFFSET, 0)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Homing offset:0")
 
-    time.sleep(0.4)
+time.sleep(0.2)
 
-    for i in range(0,len(ID)):
-        dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], OPERATING_MODE, CURRENT_CONTROL_MODE)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("Change CURRENT_CONTROL_MODE succeeded")
-            time.sleep(0.1)
+for i in range(0,len(ID)):
+    print("当前ID:%d" % ID[i])
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], 11, 0)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("change current mode successed")
 
-        dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], 512, 1)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("Torque Enable succeeded")
-            time.sleep(0.1)
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], ADDR_TORQUE_ENABLE, TORQUE_ENABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Enable success\n")
+    print("按任意健开始保存")
+    getch()
 
-        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, ID[i], ADDR_GOAL_CURRENT, VALUE_GOAL_CURRENT)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("Change GOAL CURRENT %d succeeded" &VALUE_GOAL_CURRENT)
+    dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, ID[i], ADDR_PRESENT_POSITION)
+    dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0]
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("[ID:%03d]  PresPos:%03d" % (ID[i],  dxl_present_position))
 
-        time.sleep()
+    MINVALUE = dxl_present_position
+    print("第一位数已保存\n")
+    time.sleep(0.3)
+    print("按任意健开始保存")
+    getch()
 
+    dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, ID[i], ADDR_PRESENT_POSITION)
+    dxl_present_position = struct.unpack('i', struct.pack('I', dxl_present_position))[0]
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("[ID:%03d]  PresPos:%03d" % (ID[i],  dxl_present_position))
         
-
-
-
-
-
-
-
-
-
-    for i in range(0, len(ID)):
-        # Add parameter storage for Dynamixel present position value
-        dxl_addparam_result = positionRead.addParam(ID[i])
-        if dxl_addparam_result != True:
-            print("[ID:%03d] positionRead addparam failed" % ID[i])
-            quit()
-
-        # Syncread present position
-        dxl_comm_result = positionRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-
-        for i in range(0, len(ID)):
-            # Get Dynamixel present position value
-            present_position = positionRead.getData(ID[i], ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
-            present_position = struct.unpack('i', struct.pack('I', present_position))[0]
-
-            print("[ID:%03d] present_position:%03d" % (ID[i] ,present_position))
-            PRESENTPOSITION.append(present_position)
-
-    print(PRESENTPOSITION)
-
-    PRESENTPOSITION1 = []
-    for i in range(len(PRESENTPOSITION)-len(ID),len(PRESENTPOSITION)):
-        PRESENTPOSITION1.append(PRESENTPOSITION[i])
-    print(PRESENTPOSITION1)
+    MAXVALUE = dxl_present_position
+    print("第二位数已保存\n")
 
     time.sleep(0.3)
 
-    for i in range(0,len(ID)):
-        dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, ID[i], HOMING_OFFSET, PRESENTPOSITION1[i])
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("Change Mechanical_zero_position:%d succeeded" % PRESENTPOSITION1[i])
-            Control_Table_Backup(ID[i])
-            time.sleep(0.3)
+    print("按任意健保存零点")
+    getch()
 
-    print('\n')
-    print('改完零点断电保存')
-    print('\n')
+    AVERAGE =(MINVALUE+MAXVALUE)//2
 
-    # Close port
-    portHandler.closePort()
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, ID[i], HOMING_OFFSET, AVERAGE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("change Homing offset:%d" %AVERAGE)
+    time.sleep(0.1)
 
-else:
-    print("Not powered on/not connected to equipment")
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("Disable success")
+
+    time.sleep(0.1)
+
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, ID[i], 11, 3)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("change position mode successed")
+
+    Control_Table_Backup(ID[i])
+
+    time.sleep(0.1)
+
+
+
+# Close port
+portHandler.closePort()
