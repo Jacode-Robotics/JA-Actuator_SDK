@@ -35,7 +35,7 @@ NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = '/dev/ttyUSB0'
+DEVICENAME                  = 'COM21'
 
 #THE data of calibrate the zero position is 17
 ZERO_POSITION               = 17
@@ -237,12 +237,12 @@ if SOURCE:
     while flag:
         for i in range(0,len(DXL_ID)):
 
-            opsition_control(DXL_ID[i],5000)
+            opsition_control(DXL_ID[i],500)
 
         time.sleep(4)
 
         for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],-5000)
+            opsition_control(DXL_ID[i],-500)
         
         print('succeeded')
 
