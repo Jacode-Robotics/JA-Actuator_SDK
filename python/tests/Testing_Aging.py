@@ -35,7 +35,7 @@ NEW_ID                      = 0
 
 # Use the actual port assigned to the U2D2.
 # ex) Windows: "COM*", Linux: "/dev/ttyUSB*", Mac: "/dev/tty.usbserial-*"
-DEVICENAME                  = 'COM21'
+DEVICENAME                  = '/dev/ttyUSB0'
 
 #THE data of calibrate the zero position is 17
 ZERO_POSITION               = 17
@@ -216,6 +216,9 @@ if SOURCE:
 
     STATUS = [0]*len(DXL_ID)
     while 1:
+        '''print("press space to continue")
+        if getch() == chr(0x20):
+            break'''
         for i in range(0,len(DXL_ID)):
             moving_status, dxl_comm_result, dxl_error = packetHandler.read1ByteTxRx(portHandler, DXL_ID[i], 571)
             moving_status = struct.unpack('i', struct.pack('I', moving_status))[0]
@@ -237,12 +240,12 @@ if SOURCE:
     while flag:
         for i in range(0,len(DXL_ID)):
 
-            opsition_control(DXL_ID[i],500)
+            opsition_control(DXL_ID[i],5000)
 
         time.sleep(4)
 
         for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],-500)
+            opsition_control(DXL_ID[i],-5000)
         
         print('succeeded')
 
