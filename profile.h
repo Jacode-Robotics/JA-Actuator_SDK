@@ -50,8 +50,8 @@ PF_Handle::PF_Handle() {
     t2 = 0;
     t3 = 0;
     goal_vel = 0;
-    profile_vel      = 1386;
-    profile_acc      = 2079;
+    profile_vel      = 1386 * 0.3;
+    profile_acc      = 2079 * 0.3;
     profile_time     = 2000;
     profile_acc_time = 700;
 }

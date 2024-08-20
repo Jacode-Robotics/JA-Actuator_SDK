@@ -47,16 +47,21 @@
 #define ADDR_PRO_GOAL_POSITION          564
 #define ADDR_PRO_PRESENT_POSITION       580
 #define ADDR_PRO_DRIVE_MODE             10
+#define ADDR_GOAL_VELOCITY              552
+#define ADDR_GOAL_CURRENT               550
 
 // Data Byte Length
 #define LEN_PRO_GOAL_POSITION           4
 #define LEN_PRO_PRESENT_POSITION        4
+#define LEN_GOAL_VELOCITY               4
+#define LEN_GOAL_CURRENT                2
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the DYNAMIXEL
 
 // Default setting
 const uint8_t JA_ID[] =                 {1, 2, 3, 4, 5, 6};
+// const uint8_t JA_ID[] =                 {1, 2};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -129,12 +134,18 @@ TEST(TrajTest, Planning)
 
   // Initialize GroupFastSyncWrite instance for Goal Position and Present Position
   dynamixel::GroupFastSyncWrite groupFastSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
+  dynamixel::GroupSyncWrite groupSyncWriteVel(portHandler, packetHandler, ADDR_GOAL_VELOCITY, LEN_GOAL_VELOCITY);
+  dynamixel::GroupSyncWrite groupSyncWriteTor(portHandler, packetHandler, ADDR_GOAL_CURRENT, LEN_GOAL_CURRENT);
 
   // Initialize Groupsyncread instance for Present Position
   dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
   // Create a PF_Handle object and initialize it
-  int32_t initial_position = 0, target_position[] = {0, -3258, 11080, 0, 0, 0};
+  uint8_t index = 0;
+  int32_t initial_position = 0, target_position[][6] = {{0, -3258, 11080, 0, 0, 0}, {0, -5000, 0, -8000, -8000, 10000},
+                                                        {0, -3258, 11080, 0, 0, 0}, {2000, -2000, 6000, -2000, 2000, -2000},
+                                                        {0, -3258, 11080, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+  };
   PF_Handle profile[6];
 
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
@@ -143,6 +154,8 @@ TEST(TrajTest, Planning)
 
   uint8_t dxl_error = 0;                            // DYNAMIXEL error
   uint8_t param_goal_position[4];
+  uint8_t param_goal_velocity[4];
+  uint8_t param_goal_torque[2];
   int32_t present_position = 0;                         // Present position
   char ch;
   bool end_flag = false;
@@ -226,7 +239,7 @@ TEST(TrajTest, Planning)
     printf("Input target position to continue! (or press ESC to quit!)\n");
     if (getch() == ESC_ASCII_VALUE)
       break;
-    
+
     // ch = getch();
     // if (ch == ESC_ASCII_VALUE)
     // {
@@ -235,7 +248,8 @@ TEST(TrajTest, Planning)
     // else
     // {
     //   ungetc(ch, stdin);
-    //   scanf("%d", &target_position);
+    //   scanf("%d", &target_position[0]);
+    //   target_position[1] = target_position[0];
       end_flag = false;
     // }
 
@@ -265,7 +279,7 @@ TEST(TrajTest, Planning)
       initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
       // Set a new goal position
-      profile[i].NewGoalPos(initial_position, target_position[i]);
+      profile[i].NewGoalPos(initial_position, target_position[index][i]);
     }
 
     while (!end_flag)
@@ -283,6 +297,12 @@ TEST(TrajTest, Planning)
         param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_pos));
         param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(profile[i].trajectory_pos));
         param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(profile[i].trajectory_pos));
+        param_goal_velocity[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_vel));
+        param_goal_velocity[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_vel));
+        param_goal_velocity[2] = DXL_LOBYTE(DXL_HIWORD(profile[i].trajectory_vel));
+        param_goal_velocity[3] = DXL_HIBYTE(DXL_HIWORD(profile[i].trajectory_vel));
+        param_goal_torque[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_acc));
+        param_goal_torque[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_acc));
 
         dxl_addparam_result = groupFastSyncWrite.addParam(JA_ID[i], param_goal_position);
         if (dxl_addparam_result != true)
@@ -290,7 +310,31 @@ TEST(TrajTest, Planning)
           fprintf(stderr, "[ID:%03d] groupFastSyncWrite addparam failed", JA_ID[i]);
           // return 0;
         }
+
+        // Add goal position value to the Syncwrite storage
+        dxl_addparam_result = groupSyncWriteVel.addParam(JA_ID[i], param_goal_velocity);
+        if (dxl_addparam_result != true)
+        {
+          fprintf(stderr, "[ID:%03d] groupSyncWriteVel addparam failed", JA_ID[i]);
+          // return 0;
+        }
+
+        // Add goal position value to the Syncwrite storage
+        dxl_addparam_result = groupSyncWriteTor.addParam(JA_ID[i], param_goal_torque);
+        if (dxl_addparam_result != true)
+        {
+          fprintf(stderr, "[ID:%03d] groupSyncWriteTor addparam failed", JA_ID[i]);
+          // return 0;
+        }
       }
+
+      // // Syncwrite goal torque
+      // dxl_comm_result = groupSyncWriteTor.txPacket();
+      // if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+
+      // Syncwrite goal velocity
+      dxl_comm_result = groupSyncWriteVel.txPacket();
+      if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
 
       // FastSyncWrite write goal position and present position
       dxl_comm_result = groupFastSyncWrite.txRxPacket();
@@ -323,10 +367,14 @@ TEST(TrajTest, Planning)
 
       // Clear syncwrite parameter storage
       groupFastSyncWrite.clearParam();
-    
-      std::chrono::milliseconds delay(10);
+      groupSyncWriteVel.clearParam();
+      groupSyncWriteTor.clearParam();
+
+      std::chrono::milliseconds delay(5);
       std::this_thread::sleep_for(delay);
     }
+
+    index = (index + 1) % 6;
   }
 
   for (size_t i = 0; i < sizeof(JA_ID); i++)
