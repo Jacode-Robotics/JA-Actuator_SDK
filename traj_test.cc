@@ -56,7 +56,7 @@
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the DYNAMIXEL
 
 // Default setting
-const uint8_t JA_ID[] =                 {1, 2};
+const uint8_t JA_ID[] =                 {1, 2, 3, 4, 5, 6};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -134,7 +134,7 @@ TEST(TrajTest, Planning)
   dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
   // Create a PF_Handle object and initialize it
-  int32_t initial_position = 0, target_position = 0;
+  int32_t initial_position = 0, target_position[] = {0, -3258, 11080, 0, 0, 0};
   PF_Handle profile[6];
 
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
@@ -224,17 +224,20 @@ TEST(TrajTest, Planning)
   while(1)
   {
     printf("Input target position to continue! (or press ESC to quit!)\n");
-    ch = getch();
-    if (ch == ESC_ASCII_VALUE)
-    {
+    if (getch() == ESC_ASCII_VALUE)
       break;
-    }
-    else
-    {
-      ungetc(ch, stdin);
-      scanf("%d", &target_position);
+    
+    // ch = getch();
+    // if (ch == ESC_ASCII_VALUE)
+    // {
+    //   break;
+    // }
+    // else
+    // {
+    //   ungetc(ch, stdin);
+    //   scanf("%d", &target_position);
       end_flag = false;
-    }
+    // }
 
     // Syncread present position
     dxl_comm_result = groupSyncRead.txRxPacket();
@@ -262,16 +265,17 @@ TEST(TrajTest, Planning)
       initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
       // Set a new goal position
-      profile[i].NewGoalPos(initial_position, target_position);
+      profile[i].NewGoalPos(initial_position, target_position[i]);
     }
 
     while (!end_flag)
     {
+      end_flag = true;
+
       // Add goal position value to the FastSyncwrite storage
       for (size_t i = 0; i < sizeof(JA_ID); i++)
       {
         // Update next waypoint and end flag
-        end_flag = true;
         end_flag &= profile[i].ExecutionPos();
 
         // Allocate goal position value into byte array
