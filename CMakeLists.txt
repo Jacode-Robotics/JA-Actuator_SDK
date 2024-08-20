@@ -36,9 +36,21 @@ add_executable(
     rt
 )
 
+add_executable(
+  traj_test
+  traj_test.cc
+)
+  target_link_libraries(
+    traj_test
+    GTest::gtest_main
+    dxl_x64_cpp
+    rt
+)
+
 include(GoogleTest)
 gtest_discover_tests(hello_test)
 gtest_discover_tests(command_test)
+gtest_discover_tests(traj_test)
 
 # 添加包含路径
 include_directories(${CMAKE_SOURCE_DIR}/c++/include/dynamixel_sdk)
