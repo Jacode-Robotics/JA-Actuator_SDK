@@ -27,21 +27,22 @@ public:
     uint32_t t2;
     uint32_t t3;
 
-    PF_Handle(int32_t starting_position);
+    PF_Handle();
+    // PF_Handle(int32_t starting_position);
 
     void NewGoalPos(int32_t starting_position, int32_t goal_position);
 
     bool ExecutionPos();
 };
 
-PF_Handle::PF_Handle(int32_t starting_position) {
+PF_Handle::PF_Handle() {
     type = 0;
     lock = false;
-    profile_pos = starting_position;
-    f_trajectory_pos = starting_position;
+    profile_pos = 0;
+    f_trajectory_pos = 0;
     f_trajectory_vel = 0.0;
     f_trajectory_acc = 0.0;
-    trajectory_pos = starting_position;
+    trajectory_pos = 0;
     trajectory_vel = 0;
     trajectory_acc = 0;
     t = 0;

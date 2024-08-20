@@ -56,7 +56,7 @@
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the DYNAMIXEL
 
 // Default setting
-const uint8_t JA_ID[] =                 {1};
+const uint8_t JA_ID[] =                 {1, 2};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -135,7 +135,7 @@ TEST(TrajTest, Planning)
 
   // Create a PF_Handle object and initialize it
   int32_t initial_position = 0, target_position = 0;
-  PF_Handle profile(initial_position);
+  PF_Handle profile[6];
 
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
@@ -145,6 +145,7 @@ TEST(TrajTest, Planning)
   uint8_t param_goal_position[4];
   int32_t present_position = 0;                         // Present position
   char ch;
+  bool end_flag = false;
 
   // Open port
   if (portHandler->openPort())
@@ -232,6 +233,7 @@ TEST(TrajTest, Planning)
     {
       ungetc(ch, stdin);
       scanf("%d", &target_position);
+      end_flag = false;
     }
 
     // Syncread present position
@@ -258,22 +260,26 @@ TEST(TrajTest, Planning)
 
       // Get present position value
       initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+
+      // Set a new goal position
+      profile[i].NewGoalPos(initial_position, target_position);
     }
 
-    // Set a new goal position
-    profile.NewGoalPos(initial_position, target_position);
-
-    while (!profile.ExecutionPos())
+    while (!end_flag)
     {
-      // Allocate goal position value into byte array
-      param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(profile.trajectory_pos));
-      param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(profile.trajectory_pos));
-      param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(profile.trajectory_pos));
-      param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(profile.trajectory_pos));
-
       // Add goal position value to the FastSyncwrite storage
       for (size_t i = 0; i < sizeof(JA_ID); i++)
       {
+        // Update next waypoint and end flag
+        end_flag = true;
+        end_flag &= profile[i].ExecutionPos();
+
+        // Allocate goal position value into byte array
+        param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_pos));
+        param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_pos));
+        param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(profile[i].trajectory_pos));
+        param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(profile[i].trajectory_pos));
+
         dxl_addparam_result = groupFastSyncWrite.addParam(JA_ID[i], param_goal_position);
         if (dxl_addparam_result != true)
         {
@@ -307,7 +313,7 @@ TEST(TrajTest, Planning)
         // Get DYNAMIXEL#1 present position value
         present_position = groupFastSyncWrite.getData(JA_ID[i], ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
-        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], profile.trajectory_pos, present_position);
+        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], profile[i].trajectory_pos, present_position);
       }
       printf("\n");
 
