@@ -45,16 +45,18 @@
 // Control table address
 #define ADDR_PRO_TORQUE_ENABLE          512                 // Control table address is different in DYNAMIXEL model
 #define ADDR_PRO_GOAL_POSITION          564
+#define ADDR_PRO_PRESENT_POSITION       580
 #define ADDR_PRO_DRIVE_MODE             10
 
 // Data Byte Length
 #define LEN_PRO_GOAL_POSITION           4
+#define LEN_PRO_PRESENT_POSITION        4
 
 // Protocol version
 #define PROTOCOL_VERSION                2.0                 // See which protocol version is used in the DYNAMIXEL
 
 // Default setting
-const uint8_t JA_ID[] =                 {1, 2};
+const uint8_t JA_ID[] =                 {1};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -126,11 +128,13 @@ TEST(TrajTest, Planning)
   dynamixel::PacketHandler *packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
 
   // Initialize GroupFastSyncWrite instance for Goal Position and Present Position
-  dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
   dynamixel::GroupFastSyncWrite groupFastSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
+  // Initialize Groupsyncread instance for Present Position
+  dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+
   // Create a PF_Handle object and initialize it
-  int32_t initial_position = 0;
+  int32_t initial_position = 0, target_position = 0;
   PF_Handle profile(initial_position);
 
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
@@ -140,6 +144,7 @@ TEST(TrajTest, Planning)
   uint8_t dxl_error = 0;                            // DYNAMIXEL error
   uint8_t param_goal_position[4];
   int32_t present_position = 0;                         // Present position
+  char ch;
 
   // Open port
   if (portHandler->openPort())
@@ -166,48 +171,6 @@ TEST(TrajTest, Planning)
     getch();
     // return 0;
   }
-
-  // Allocate goal position value into byte array
-  param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(0));
-  param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(0));
-  param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(0));
-  param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(0));
-
-  // Homing
-  for (size_t i = 0; i < sizeof(JA_ID); i++)
-  {
-    // Enable Torque
-    dxl_comm_result = packetHandler->write1ByteTxRx(portHandler, JA_ID[i], ADDR_PRO_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
-    if (dxl_comm_result != COMM_SUCCESS)
-    {
-      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-    }
-    else if (dxl_error != 0)
-    {
-      printf("%s\n", packetHandler->getRxPacketError(dxl_error));
-    }
-    else
-    {
-      printf("Dynamixel#%d has been successfully connected \n", JA_ID[i]);
-    }
-
-    // Add goal position value to the Syncwrite storage
-    dxl_addparam_result = groupSyncWrite.addParam(JA_ID[i], param_goal_position);
-    if (dxl_addparam_result != true)
-    {
-      fprintf(stderr, "[ID:%03d] groupSyncWrite addparam failed", JA_ID[i]);
-      // return 0;
-    }
-  }
-
-  // Syncwrite goal position
-  dxl_comm_result = groupSyncWrite.txPacket();
-  if (dxl_comm_result != COMM_SUCCESS) printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
-
-  // Clear syncwrite parameter storage
-  groupSyncWrite.clearParam();    
-  std::chrono::milliseconds delay(3000);
-  std::this_thread::sleep_for(delay);
 
   for (size_t i = 0; i < sizeof(JA_ID); i++)
   {
@@ -247,16 +210,58 @@ TEST(TrajTest, Planning)
     {
       printf("Dynamixel#%d has been successfully connected \n", JA_ID[i]);
     }
+
+    // Add parameter storage for present position value
+    dxl_addparam_result = groupSyncRead.addParam(JA_ID[i]);
+    if (dxl_addparam_result != true)
+    {
+      fprintf(stderr, "[ID:%03d] groupSyncRead addparam failed", JA_ID[i]);
+      // return 0;
+    }
   }
 
   while(1)
   {
-    printf("Press any key to continue! (or press ESC to quit!)\n");
-    if (getch() == ESC_ASCII_VALUE)
+    printf("Input target position to continue! (or press ESC to quit!)\n");
+    ch = getch();
+    if (ch == ESC_ASCII_VALUE)
+    {
       break;
+    }
+    else
+    {
+      ungetc(ch, stdin);
+      scanf("%d", &target_position);
+    }
+
+    // Syncread present position
+    dxl_comm_result = groupSyncRead.txRxPacket();
+    if (dxl_comm_result != COMM_SUCCESS)
+    {
+      printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
+    }
+
+    for (size_t i = 0; i < sizeof(JA_ID); i++)
+    {
+      if (groupSyncRead.getError(JA_ID[i], &dxl_error))
+      {
+        printf("[ID:%03d] %s\n", JA_ID[i], packetHandler->getRxPacketError(dxl_error));
+      }
+
+      // Check if groupsyncread data is available
+      dxl_getdata_result = groupSyncRead.isAvailable(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      if (dxl_getdata_result != true)
+      {
+        fprintf(stderr, "[ID:%03d] groupSyncRead getdata failed", JA_ID[i]);
+        // return 0;
+      }
+
+      // Get present position value
+      initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+    }
 
     // Set a new goal position
-    profile.NewGoalPos(initial_position, 5000);
+    profile.NewGoalPos(initial_position, target_position);
 
     while (!profile.ExecutionPos())
     {
