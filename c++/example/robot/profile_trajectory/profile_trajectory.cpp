@@ -38,6 +38,7 @@
 #include <thread>
 
 #include "dynamixel_sdk.h"                                  // Uses DYNAMIXEL SDK library
+#include "profile.h"
 
 // Control table address
 #define ADDR_PRO_TORQUE_ENABLE          512                 // Control table address is different in DYNAMIXEL model
@@ -126,12 +127,13 @@ int main()
   dynamixel::GroupSyncWrite groupSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
   dynamixel::GroupFastSyncWrite groupFastSyncWrite(portHandler, packetHandler, ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
-  int index = 0;
+  // Create a PF_Handle object and initialize it
+  int32_t initial_position = 0;
+  PF_Handle profile(initial_position);
+
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
   bool dxl_getdata_result = false;                  // GetParam result
-  int dxl_goal_position[] = {0, 1, 5, 10, 18, 28, 41, 56, 73, 92, 114, 137, 164, 192, 223, 256, 291, 328, 368, 410, 455, 501, 550, 601, 655, 710, 768, 828, 891, 956, 1023, 1092, 1164, 1237, 1313, 1388, 1464, 1539, 1614, 1690, 1765, 1840, 1916, 1991, 2067, 2142, 2217, 2293, 2368, 2443, 2519, 2594, 2670, 2745, 2820, 2896, 2971, 3046, 3122, 3197, 3273, 3348, 3423, 3499, 3574, 3649, 3725, 3800, 3872, 3943, 4011, 4077, 4141, 4202, 4261, 4318, 4372, 4425, 4475, 4522, 4568, 4611, 4652, 4691, 4727, 4761, 4793, 4822, 4850, 4875, 4897, 4918, 4936, 4952, 4966, 4977, 4986, 4993, 4997, 5000, 5000, 4997, 4993, 4986, 4977, 4966, 4952, 4936, 4918, 4897, 4875, 4850, 4822, 4793, 4761, 4727, 4691, 4652, 4611, 4568, 4522, 4475, 4425, 4372, 4318, 4261, 4202, 4141, 4077, 4011, 3943, 3872, 3800, 3725, 3649, 3574, 3499, 3423, 3348, 3273, 3197, 3122, 3046, 2971, 2896, 2820, 2745, 2670, 2594, 2519, 2443, 2368, 2293, 2217, 2142, 2067, 1991, 1916, 1840, 1765, 1690, 1614, 1539, 1464, 1388, 1313, 1237, 1164, 1092, 1023, 956, 891, 828, 768, 710, 655, 601, 550, 501, 455, 410, 368, 328, 291, 256, 223, 192, 164, 137, 114, 92, 73, 56, 41, 28, 18, 10, 5, 1, 0};
-  int goal_position_size = sizeof(dxl_goal_position) / sizeof(int);
 
   uint8_t dxl_error = 0;                            // DYNAMIXEL error
   uint8_t param_goal_position[4];
@@ -164,10 +166,10 @@ int main()
   }
 
   // Allocate goal position value into byte array
-  param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[0]));
-  param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[0]));
-  param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[0]));
-  param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[0]));
+  param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(0));
+  param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(0));
+  param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(0));
+  param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(0));
 
   // Homing
   for (size_t i = 0; i < sizeof(JA_ID); i++)
@@ -251,13 +253,16 @@ int main()
     if (getch() == ESC_ASCII_VALUE)
       break;
 
-    for (index = 0; index < goal_position_size; index++)
+    // Set a new goal position
+    profile.NewGoalPos(initial_position, 5000);
+
+    while (!profile.ExecutionPos())
     {
       // Allocate goal position value into byte array
-      param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[index]));
-      param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[index]));
-      param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index]));
-      param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]));
+      param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(profile.trajectory_pos));
+      param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(profile.trajectory_pos));
+      param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(profile.trajectory_pos));
+      param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(profile.trajectory_pos));
 
       // Add goal position value to the FastSyncwrite storage
       for (size_t i = 0; i < sizeof(JA_ID); i++)
@@ -295,7 +300,7 @@ int main()
         // Get DYNAMIXEL#1 present position value
         present_position = groupFastSyncWrite.getData(JA_ID[i], ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
-        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], dxl_goal_position[index], present_position);
+        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], profile.trajectory_pos, present_position);
       }
       printf("\n");
 
