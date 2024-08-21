@@ -62,7 +62,6 @@
 
 // Default setting
 const uint8_t JA_ID[] =                 {1, 2, 3, 4, 5, 6};
-// const uint8_t JA_ID[] =                 {1, 2};
 #define BAUDRATE                        2000000
 #define DEVICENAME                      "/dev/ttyUSB0"      // Check which port is being used on your controller
                                                             // ex) Windows: "COM1"   Linux: "/dev/ttyUSB0" Mac: "/dev/tty.usbserial-*"
@@ -141,14 +140,6 @@ TEST(TrajTest, Planning)
   // Initialize Groupsyncread instance for Present Position
   dynamixel::GroupSyncRead groupSyncRead(portHandler, packetHandler, ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
-  // Create a PF_Handle object and initialize it
-  uint8_t index = 0;
-  int32_t initial_position = 0, target_position[][6] = {{0, -3258, 11080, 0, 0, 0}, {0, -5000, 0, -8000, -8000, 10000},
-                                                        {0, -3258, 11080, 0, 0, 0}, {2000, -2000, 6000, -2000, 2000, -2000},
-                                                        {0, -3258, 11080, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
-  };
-  ProfileTraj profile[6];
-
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
   bool dxl_getdata_result = false;                  // GetParam result
@@ -157,13 +148,18 @@ TEST(TrajTest, Planning)
   uint8_t param_goal_position[4];
   uint8_t param_goal_velocity[4];
   uint8_t param_goal_torque[2];
-  int32_t present_position = 0;                         // Present position
-  char ch;
-  bool end_flag = false;
 
-  int32_t waypoint_pos;
-  int32_t waypoint_vel;
-  int32_t waypoint_acc; 
+  uint8_t index = 0;
+  int32_t target_position[][6] = {{0, -3258, 11080, 0, 0, 0}, 
+                                  {0, -5000, 0, -8000, -8000, 10000},
+                                  {0, -3258, 11080, 0, 0, 0}, 
+                                  {2000, -2000, 6000, -2000, 2000, -2000},
+                                  {0, -3258, 11080, 0, 0, 0}, 
+                                  {0, 0, 0, 0, 0, 0}};
+  int32_t present_position = 0;
+  bool end_flag = false;
+  ProfileTraj profile[6];
+  int32_t waypoint_pos, waypoint_vel, waypoint_acc;
 
   // Open port
   if (portHandler->openPort())
@@ -191,6 +187,7 @@ TEST(TrajTest, Planning)
     // return 0;
   }
 
+  // Initialize the robotic joint
   for (size_t i = 0; i < sizeof(JA_ID); i++)
   {
     // Disable Torque
@@ -241,22 +238,9 @@ TEST(TrajTest, Planning)
 
   while(1)
   {
-    printf("Input target position to continue! (or press ESC to quit!)\n");
+    printf("Press any key to continue! (or press ESC to quit!)\n");
     if (getch() == ESC_ASCII_VALUE)
       break;
-
-    // ch = getch();
-    // if (ch == ESC_ASCII_VALUE)
-    // {
-    //   break;
-    // }
-    // else
-    // {
-    //   ungetc(ch, stdin);
-    //   scanf("%d", &target_position[0]);
-    //   target_position[1] = target_position[0];
-      end_flag = false;
-    // }
 
     // Syncread present position
     dxl_comm_result = groupSyncRead.txRxPacket();
@@ -281,14 +265,13 @@ TEST(TrajTest, Planning)
       }
 
       // Get present position value
-      initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
+      present_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
       // Set a new goal position
-      profile[i].SetGoalPos(initial_position, target_position[index][i]);
+      profile[i].SetGoalPos(present_position, target_position[index][i]);
     }
 
-    while (!end_flag)
-    {
+    do {
       end_flag = true;
 
       // Add goal position value to the FastSyncwrite storage
@@ -348,6 +331,7 @@ TEST(TrajTest, Planning)
         printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
       }
 
+      // Get present position from status packet
       for (size_t i = 0; i < sizeof(JA_ID); i++)
       {
         if (groupFastSyncWrite.getError(JA_ID[i], &dxl_error))
@@ -377,11 +361,13 @@ TEST(TrajTest, Planning)
 
       std::chrono::milliseconds delay(5);
       std::this_thread::sleep_for(delay);
-    }
+    } while (!end_flag);
 
+    // Go next target position
     index = (index + 1) % 6;
   }
 
+  // Turn off the robotic joint
   for (size_t i = 0; i < sizeof(JA_ID); i++)
   {
     // Disable Torque
