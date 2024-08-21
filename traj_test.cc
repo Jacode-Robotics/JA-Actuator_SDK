@@ -41,6 +41,7 @@
 
 #include "dynamixel_sdk.h"                                  // Uses DYNAMIXEL SDK library
 #include "profile.h"
+#include "profile_traj.h"
 
 // Control table address
 #define ADDR_PRO_TORQUE_ENABLE          512                 // Control table address is different in DYNAMIXEL model
@@ -146,7 +147,7 @@ TEST(TrajTest, Planning)
                                                         {0, -3258, 11080, 0, 0, 0}, {2000, -2000, 6000, -2000, 2000, -2000},
                                                         {0, -3258, 11080, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
   };
-  PF_Handle profile[6];
+  ProfileTraj profile[6];
 
   int dxl_comm_result = COMM_TX_FAIL;               // Communication result
   bool dxl_addparam_result = false;                 // addParam result
@@ -159,6 +160,10 @@ TEST(TrajTest, Planning)
   int32_t present_position = 0;                         // Present position
   char ch;
   bool end_flag = false;
+
+  int32_t waypoint_pos;
+  int32_t waypoint_vel;
+  int32_t waypoint_acc; 
 
   // Open port
   if (portHandler->openPort())
@@ -279,7 +284,7 @@ TEST(TrajTest, Planning)
       initial_position = groupSyncRead.getData(JA_ID[i], ADDR_PRO_PRESENT_POSITION, LEN_PRO_PRESENT_POSITION);
 
       // Set a new goal position
-      profile[i].NewGoalPos(initial_position, target_position[index][i]);
+      profile[i].SetGoalPos(initial_position, target_position[index][i]);
     }
 
     while (!end_flag)
@@ -290,19 +295,19 @@ TEST(TrajTest, Planning)
       for (size_t i = 0; i < sizeof(JA_ID); i++)
       {
         // Update next waypoint and end flag
-        end_flag &= profile[i].ExecutionPos();
+        end_flag &= profile[i].ExecutionPos(waypoint_pos, waypoint_vel, waypoint_acc);
 
         // Allocate goal position value into byte array
-        param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_pos));
-        param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_pos));
-        param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(profile[i].trajectory_pos));
-        param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(profile[i].trajectory_pos));
-        param_goal_velocity[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_vel));
-        param_goal_velocity[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_vel));
-        param_goal_velocity[2] = DXL_LOBYTE(DXL_HIWORD(profile[i].trajectory_vel));
-        param_goal_velocity[3] = DXL_HIBYTE(DXL_HIWORD(profile[i].trajectory_vel));
-        param_goal_torque[0] = DXL_LOBYTE(DXL_LOWORD(profile[i].trajectory_acc));
-        param_goal_torque[1] = DXL_HIBYTE(DXL_LOWORD(profile[i].trajectory_acc));
+        param_goal_position[0] = DXL_LOBYTE(DXL_LOWORD(waypoint_pos));
+        param_goal_position[1] = DXL_HIBYTE(DXL_LOWORD(waypoint_pos));
+        param_goal_position[2] = DXL_LOBYTE(DXL_HIWORD(waypoint_pos));
+        param_goal_position[3] = DXL_HIBYTE(DXL_HIWORD(waypoint_pos));
+        param_goal_velocity[0] = DXL_LOBYTE(DXL_LOWORD(waypoint_vel));
+        param_goal_velocity[1] = DXL_HIBYTE(DXL_LOWORD(waypoint_vel));
+        param_goal_velocity[2] = DXL_LOBYTE(DXL_HIWORD(waypoint_vel));
+        param_goal_velocity[3] = DXL_HIBYTE(DXL_HIWORD(waypoint_vel));
+        param_goal_torque[0] = DXL_LOBYTE(DXL_LOWORD(waypoint_acc));
+        param_goal_torque[1] = DXL_HIBYTE(DXL_LOWORD(waypoint_acc));
 
         dxl_addparam_result = groupFastSyncWrite.addParam(JA_ID[i], param_goal_position);
         if (dxl_addparam_result != true)
@@ -361,7 +366,7 @@ TEST(TrajTest, Planning)
         // Get DYNAMIXEL#1 present position value
         present_position = groupFastSyncWrite.getData(JA_ID[i], ADDR_PRO_GOAL_POSITION, LEN_PRO_GOAL_POSITION);
 
-        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], profile[i].trajectory_pos, present_position);
+        printf("[ID:%03d] GoalPos:%03d  PresPos:%03d\t", JA_ID[i], waypoint_pos, present_position);
       }
       printf("\n");
 
