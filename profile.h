@@ -36,7 +36,7 @@ public:
 };
 
 PF_Handle::PF_Handle() {
-    type = 0;
+    type = 1;
     lock = false;
     profile_pos = 0;
     f_trajectory_pos = 0;
@@ -50,10 +50,10 @@ PF_Handle::PF_Handle() {
     t2 = 0;
     t3 = 0;
     goal_vel = 0;
-    profile_vel      = 1386 * 0.3;
-    profile_acc      = 2079 * 0.3;
-    profile_time     = 2000;
-    profile_acc_time = 700;
+    profile_vel      = 1386 * 0.8;
+    profile_acc      = 2079 * 0.4;
+    profile_time     = 3000;
+    profile_acc_time = 1000;
 }
 
 void PF_Handle::NewGoalPos(int32_t starting_position, int32_t goal_position) {
@@ -70,10 +70,10 @@ void PF_Handle::NewGoalPos(int32_t starting_position, int32_t goal_position) {
     switch (type) {
         // Velocity-based Profile
     case 0:
-        t1 = 600 * profile_vel / profile_acc;
-        t2 = (6000000 / 32768) * (static_cast<float>(delta_pos) / static_cast<float>(profile_vel));
+        t1 = 600.0 * profile_vel / profile_acc;
+        t2 = (6000000.0 / 32768.0) * (static_cast<float>(delta_pos) / static_cast<float>(profile_vel));
         if (t1 > t2) {
-            t1 = sqrt(static_cast<float>(delta_pos) / static_cast<float>(profile_acc) / 32768) * 60000;
+            t1 = sqrt(static_cast<float>(delta_pos) / static_cast<float>(profile_acc) / 32768.0) * 60000.0;
             t2 = t1;
         }
         t3 = t1 + t2;
@@ -84,10 +84,10 @@ void PF_Handle::NewGoalPos(int32_t starting_position, int32_t goal_position) {
     // Time-based Profile
     case 1:
         t1 = profile_acc_time;
-        t3 = profile_time * 0.1;
+        t3 = profile_time;
         t2 = t3 - t1;
 
-        goal_acc = (static_cast<float>(delta_pos) / t1) * (10986328.1250000 / t2);       
+        goal_acc = (static_cast<float>(delta_pos) / t1) * (109863.281250000 / t2);       
         break;
 
     default:
