@@ -9,6 +9,16 @@
 #include <cstdint>
 #include <cmath>
 
+/* Trajectory profile period, in milliseconds */
+#define CONTROL_PERIOD 10 
+#define POSITION_RESOLUTION 32768.0
+
+/**
+ * Time in milliseconds
+ * Position in count
+ * Velocity in 0.01 rev/min
+ * Acceleration in rev/min^2
+ */
 class ProfileTraj {
 private:
     uint8_t type;
@@ -51,9 +61,9 @@ public:
         // Velocity-based Profile
         case 0:
             t1 = 600.0 * profile_vel / profile_acc;
-            t2 = (6000000.0 / 32768.0) * (delta_pos / profile_vel);
+            t2 = (6000000.0 / POSITION_RESOLUTION) * (delta_pos / profile_vel);
             if (t1 > t2) {
-                t1 = sqrt(delta_pos / profile_acc / 32768.0) * 60000.0;
+                t1 = sqrt(delta_pos / profile_acc / POSITION_RESOLUTION) * 60000.0;
                 t2 = t1;
             }
             t3 = t1 + t2;
@@ -67,7 +77,7 @@ public:
             t3 = profile_time;
             t2 = t3 - t1;
 
-            goal_acc = (delta_pos / t1) * (109863.281250000 / t2);       
+            goal_acc = (delta_pos / t1 * t2) * (60000.0 * 60000.0 / POSITION_RESOLUTION);       
             break;
 
         default:
@@ -107,10 +117,10 @@ public:
                 waypoint_acc = move_direction ? -goal_acc : goal_acc;
             }
 
-            waypoint_vel += waypoint_acc * (1.0 / 60000.0) * 100.0 * 10.0;
-            waypoint_pos += waypoint_vel * (1.0 / 60000.0) / 100.0 * 32768.0 * 10.0;
+            waypoint_vel += waypoint_acc / 60000.0 * 100.0 * CONTROL_PERIOD;
+            waypoint_pos += waypoint_vel / 60000.0 / 100.0 * POSITION_RESOLUTION * CONTROL_PERIOD;
 
-            t += 10;
+            t += CONTROL_PERIOD;
         }
 
         pos = static_cast<int32_t>(waypoint_pos);
