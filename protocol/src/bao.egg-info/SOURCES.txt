@@ -1,9 +1,0 @@
-setup.py
-src/bao/__init__.py
-src/bao/modubus.py
-src/bao/port_pack.py
-src/bao.egg-info/PKG-INFO
-src/bao.egg-info/SOURCES.txt
-src/bao.egg-info/dependency_links.txt
-src/bao.egg-info/requires.txt
-src/bao.egg-info/top_level.txt
