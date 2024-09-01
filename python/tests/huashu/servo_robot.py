@@ -92,8 +92,8 @@ def extract_data_from_jointld(file_path):
                 # Ensure we have exactly 12 values
                 if len(data_values) == 12:
                     # Scale the positions and velocities and convert to integers
-                    dxl_goal_position = [int((val / 360.0) * 32768) for val in data_values[:6]]
-                    dxl_goal_velocity = [int((val / 360.0) * 32768) for val in data_values[6:12]]
+                    dxl_goal_position = [int((val / 360.0) * 32768.0) for val in data_values[:6]]
+                    dxl_goal_velocity = [int((val / 360.0) * (100 * 60.0 / 8.0)) for val in data_values[6:12]]
                     
                     extracted_data.append({
                         'index': index,
