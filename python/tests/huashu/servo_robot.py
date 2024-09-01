@@ -54,8 +54,8 @@ ADDR_DRIVE_MODE             = 10
 PROTOCOL_VERSION            = 2.0
 
 # Make sure that each DYNAMIXEL ID should have unique ID.
-# DXL_ID = [1, 2, 3, 4, 5, 6]
-DXL_ID = [1]
+DXL_ID = [1, 2, 3, 4, 5, 6]
+# DXL_ID = [1]
 
 
 
@@ -166,7 +166,7 @@ for i in range(0, len(DXL_ID)):
         print("%s" % packetHandler.getRxPacketError(dxl_error))
 
     # Write start position point
-    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], ADDR_GOAL_POSITION, dxl_goal_position[0])
+    dxl_comm_result, dxl_error = packetHandler.write4ByteTxRx(portHandler, DXL_ID[i], ADDR_GOAL_POSITION, dxl_goal_position[i])
     
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
@@ -183,9 +183,9 @@ for i in range(0, len(DXL_ID)):
         elif dxl_error != 0:
             print("%s" % packetHandler.getRxPacketError(dxl_error))
 
-        print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[0], dxl_present_position))
+        print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (DXL_ID[i], dxl_goal_position[i], dxl_present_position))
 
-        if not abs(dxl_goal_position[0] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD:
+        if not abs(dxl_goal_position[i] - dxl_present_position) > DXL_MOVING_STATUS_THRESHOLD:
             break    
 
     # Disable Dynamixel Torque
@@ -224,10 +224,10 @@ while 1:
     for entry in data:
         dxl_goal_position = entry['dxl_goal_position']
         
-        # Allocate goal position value into byte array
-        param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[0]))]
-
         for i in range(0, len(DXL_ID)):
+            # Allocate goal position value into byte array
+            param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[i])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[i])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[i])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[i]))]
+
             # Add Dynamixel goal position value to the Syncwrite parameter storage
             dxl_addparam_result = groupSyncWrite.addParam(DXL_ID[i], param_goal_position)
             if dxl_addparam_result != True:
