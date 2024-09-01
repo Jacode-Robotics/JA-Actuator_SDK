@@ -38,6 +38,7 @@ else:
         return ch
 
 from dynamixel_sdk import *                    # Uses Dynamixel SDK library
+import re
 
 # Control table address
 ADDR_TORQUE_ENABLE          = 512        # Control table address is different in DYNAMIXEL model
@@ -70,7 +71,47 @@ PROFILE_ENABLE              = 0x0;              # Value for enable trajectory pr
 PROFILE_DISABLE             = 0x02;             # Value for disable trajectory profile
 
 index = 0
-dxl_goal_position = [0, 1, 5, 10, 18, 28, 41, 56, 73, 92, 114, 137, 164, 192, 223, 256, 291, 328, 368, 410, 455, 501, 550, 601, 655, 710, 768, 828, 891, 956, 1023, 1092, 1164, 1237, 1313, 1388, 1464, 1539, 1614, 1690, 1765, 1840, 1916, 1991, 2067, 2142, 2217, 2293, 2368, 2443, 2519, 2594, 2670, 2745, 2820, 2896, 2971, 3046, 3122, 3197, 3273, 3348, 3423, 3499, 3574, 3649, 3725, 3800, 3872, 3943, 4011, 4077, 4141, 4202, 4261, 4318, 4372, 4425, 4475, 4522, 4568, 4611, 4652, 4691, 4727, 4761, 4793, 4822, 4850, 4875, 4897, 4918, 4936, 4952, 4966, 4977, 4986, 4993, 4997, 5000, 5000, 4997, 4993, 4986, 4977, 4966, 4952, 4936, 4918, 4897, 4875, 4850, 4822, 4793, 4761, 4727, 4691, 4652, 4611, 4568, 4522, 4475, 4425, 4372, 4318, 4261, 4202, 4141, 4077, 4011, 3943, 3872, 3800, 3725, 3649, 3574, 3499, 3423, 3348, 3273, 3197, 3122, 3046, 2971, 2896, 2820, 2745, 2670, 2594, 2519, 2443, 2368, 2293, 2217, 2142, 2067, 1991, 1916, 1840, 1765, 1690, 1614, 1539, 1464, 1388, 1313, 1237, 1164, 1092, 1023, 956, 891, 828, 768, 710, 655, 601, 550, 501, 455, 410, 368, 328, 291, 256, 223, 192, 164, 137, 114, 92, 73, 56, 41, 28, 18, 10, 5, 1, 0]         # Goal position
+# dxl_goal_position = [0, 1, 5, 10, 18, 28, 41, 56, 73, 92, 114, 137, 164, 192, 223, 256, 291, 328, 368, 410, 455, 501, 550, 601, 655, 710, 768, 828, 891, 956, 1023, 1092, 1164, 1237, 1313, 1388, 1464, 1539, 1614, 1690, 1765, 1840, 1916, 1991, 2067, 2142, 2217, 2293, 2368, 2443, 2519, 2594, 2670, 2745, 2820, 2896, 2971, 3046, 3122, 3197, 3273, 3348, 3423, 3499, 3574, 3649, 3725, 3800, 3872, 3943, 4011, 4077, 4141, 4202, 4261, 4318, 4372, 4425, 4475, 4522, 4568, 4611, 4652, 4691, 4727, 4761, 4793, 4822, 4850, 4875, 4897, 4918, 4936, 4952, 4966, 4977, 4986, 4993, 4997, 5000, 5000, 4997, 4993, 4986, 4977, 4966, 4952, 4936, 4918, 4897, 4875, 4850, 4822, 4793, 4761, 4727, 4691, 4652, 4611, 4568, 4522, 4475, 4425, 4372, 4318, 4261, 4202, 4141, 4077, 4011, 3943, 3872, 3800, 3725, 3649, 3574, 3499, 3423, 3348, 3273, 3197, 3122, 3046, 2971, 2896, 2820, 2745, 2670, 2594, 2519, 2443, 2368, 2293, 2217, 2142, 2067, 1991, 1916, 1840, 1765, 1690, 1614, 1539, 1464, 1388, 1313, 1237, 1164, 1092, 1023, 956, 891, 828, 768, 710, 655, 601, 550, 501, 455, 410, 368, 328, 291, 256, 223, 192, 164, 137, 114, 92, 73, 56, 41, 28, 18, 10, 5, 1, 0]         # Goal position
+
+def extract_data_from_jointld(file_path):
+    extracted_data = []
+    
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Match the pattern |index; followed by comma-separated float values
+            match = re.match(r'\|(\d+);([\d\.\-\+,]+)', line.strip())
+            if match:
+                index = int(match.group(1))
+                data_values = match.group(2).split(',')
+                
+                # Filter out any empty strings and convert the remaining data values to floats
+                data_values = [float(val) for val in data_values if val]
+                
+                # Ensure we have exactly 12 values
+                if len(data_values) == 12:
+                    # Scale the positions and velocities and convert to integers
+                    dxl_goal_position = [int((val / 360.0) * 32768) for val in data_values[:6]]
+                    dxl_goal_velocity = [int((val / 360.0) * 32768) for val in data_values[6:12]]
+                    
+                    extracted_data.append({
+                        'index': index,
+                        'dxl_goal_position': dxl_goal_position,
+                        'dxl_goal_velocity': dxl_goal_velocity
+                    })
+    
+    return extracted_data
+
+# Example usage
+file_path = 'JointLD_25.data'
+data = extract_data_from_jointld(file_path)
+dxl_goal_position = data[0]['dxl_goal_position']
+
+# Print the extracted data
+# for entry in data:
+#     print(f"Index: {entry['index']}")
+#     print(f"Goal Positions: {entry['dxl_goal_position']}")
+#     print(f"Goal Velocities: {entry['dxl_goal_velocity']}")
+#     print('-' * 50)
 
 # Initialize PortHandler instance
 # Set the port path
@@ -179,9 +220,12 @@ while 1:
     if getch() == chr(0x1b):
         break
 
-    for index in range(0, len(dxl_goal_position)):
+    # for index in range(0, len(dxl_goal_position)):
+    for entry in data:
+        dxl_goal_position = entry['dxl_goal_position']
+        
         # Allocate goal position value into byte array
-        param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[index])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[index])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[index])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[index]))]
+        param_goal_position = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_position[0])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_position[0])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_position[0]))]
 
         for i in range(0, len(DXL_ID)):
             # Add Dynamixel goal position value to the Syncwrite parameter storage
