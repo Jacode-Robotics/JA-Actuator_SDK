@@ -262,12 +262,12 @@ while 1:
         groupSyncWriteVel.clearParam()
 
         # Wait for movement to goal position
-        time.sleep(0.01)
+        time.sleep(0.005)
 
 # Clear syncread parameter storage
 groupSyncRead.clearParam()
 
-for i in range(0, len(DXL_ID)):
+for i in range(len(DXL_ID), 0):
     # Enable trajectory profile
     dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID[i], ADDR_DRIVE_MODE, PROFILE_ENABLE)
     if dxl_comm_result != COMM_SUCCESS:
