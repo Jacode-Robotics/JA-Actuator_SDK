@@ -46,6 +46,8 @@ ADDR_GOAL_POSITION          = 564
 LEN_GOAL_POSITION           = 4          # Data Byte Length
 ADDR_PRESENT_POSITION       = 580
 LEN_PRESENT_POSITION        = 4          # Data Byte Length
+ADDR_GOAL_VELOCITY          = 552
+LEN_GOAL_VELOCITY           = 4          # Data Byte Length
 BAUDRATE                    = 2000000
 ADDR_DRIVE_MODE             = 10
 
@@ -125,6 +127,7 @@ packetHandler = PacketHandler(PROTOCOL_VERSION)
 
 # Initialize GroupSyncWrite instance
 groupSyncWrite = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_POSITION, LEN_GOAL_POSITION)
+groupSyncWriteVel = GroupSyncWrite(portHandler, packetHandler, ADDR_GOAL_VELOCITY, LEN_GOAL_VELOCITY)
 
 # Initialize GroupSyncRead instace for Present Position
 groupSyncRead = GroupSyncRead(portHandler, packetHandler, ADDR_PRESENT_POSITION, LEN_PRESENT_POSITION)
@@ -223,6 +226,7 @@ while 1:
     # for index in range(0, len(dxl_goal_position)):
     for entry in data:
         dxl_goal_position = entry['dxl_goal_position']
+        dxl_goal_velocity = entry['dxl_goal_velocity']
         
         for i in range(0, len(DXL_ID)):
             # Allocate goal position value into byte array
@@ -234,13 +238,28 @@ while 1:
                 print("[ID:%03d] groupSyncWrite addparam failed" % DXL_ID[i])
                 quit()
 
+            # Allocate goal velocity value into byte array
+            param_goal_velocity = [DXL_LOBYTE(DXL_LOWORD(dxl_goal_velocity[i])), DXL_HIBYTE(DXL_LOWORD(dxl_goal_velocity[i])), DXL_LOBYTE(DXL_HIWORD(dxl_goal_velocity[i])), DXL_HIBYTE(DXL_HIWORD(dxl_goal_velocity[i]))]
+
+            # Add Dynamixel goal position value to the Syncwrite parameter storage
+            dxl_addparam_result = groupSyncWriteVel.addParam(DXL_ID[i], param_goal_velocity)
+            if dxl_addparam_result != True:
+                print("[ID:%03d] groupSyncWriteVel addparam failed" % DXL_ID[i])
+                quit()
+
         # Syncwrite goal position
         dxl_comm_result = groupSyncWrite.txPacket()
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
+        # Syncwrite goal velocity
+        dxl_comm_result = groupSyncWriteVel.txPacket()
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+
         # Clear syncwrite parameter storage
         groupSyncWrite.clearParam()
+        groupSyncWriteVel.clearParam()
 
         # Wait for movement to goal position
         time.sleep(0.01)
