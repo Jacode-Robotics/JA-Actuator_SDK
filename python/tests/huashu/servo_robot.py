@@ -247,13 +247,13 @@ while 1:
                 print("[ID:%03d] groupSyncWriteVel addparam failed" % DXL_ID[i])
                 quit()
 
-        # Syncwrite goal position
-        dxl_comm_result = groupSyncWrite.txPacket()
+        # Syncwrite goal velocity
+        dxl_comm_result = groupSyncWriteVel.txPacket()
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        # Syncwrite goal velocity
-        dxl_comm_result = groupSyncWriteVel.txPacket()
+        # Syncwrite goal position
+        dxl_comm_result = groupSyncWrite.txRxPacket()
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 

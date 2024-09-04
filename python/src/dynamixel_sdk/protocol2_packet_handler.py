@@ -751,6 +751,27 @@ class Protocol2PacketHandler(object):
 
         return result
 
+    def syncWriteTxRx(self, port, start_address, data_length, param, param_length):
+        txpacket = [0] * (param_length + 14)
+        # 14: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
+
+        txpacket[PKT_ID] = BROADCAST_ID
+        txpacket[PKT_LENGTH_L] = DXL_LOBYTE(
+            param_length + 7)  # 7: INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
+        txpacket[PKT_LENGTH_H] = DXL_HIBYTE(
+            param_length + 7)  # 7: INST START_ADDR_L START_ADDR_H DATA_LEN_L DATA_LEN_H CRC16_L CRC16_H
+        txpacket[PKT_INSTRUCTION] = INST_FAST_SYNC_WRITE
+        txpacket[PKT_PARAMETER0 + 0] = DXL_LOBYTE(start_address)
+        txpacket[PKT_PARAMETER0 + 1] = DXL_HIBYTE(start_address)
+        txpacket[PKT_PARAMETER0 + 2] = DXL_LOBYTE(data_length)
+        txpacket[PKT_PARAMETER0 + 3] = DXL_HIBYTE(data_length)
+
+        txpacket[PKT_PARAMETER0 + 4: PKT_PARAMETER0 + 4 + param_length] = param[0: param_length]
+
+        _, result, _ = self.txRxPacket(port, txpacket)
+
+        return result
+
     def bulkReadTx(self, port, param, param_length):
         txpacket = [0] * (param_length + 10)
         # 10: HEADER0 HEADER1 HEADER2 RESERVED ID LEN_L LEN_H INST CRC16_L CRC16_H
