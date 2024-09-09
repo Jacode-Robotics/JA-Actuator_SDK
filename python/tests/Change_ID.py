@@ -157,8 +157,6 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
     getch()
     quit()
 
-Power_judgment()
-
 '''for i in range(1,7):
     dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
     if dxl_comm_result != COMM_SUCCESS:
@@ -169,75 +167,71 @@ Power_judgment()
         print("number is %d" % dxl_model_number)
     time.sleep(0.5)
 '''
-if SOURCE:
 
-    DXL_ID = []
-    NUMBER = []
-    for i in range(1,20):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("ID is %d" % i)  
-            DXL_ID.append(i)
-            NUMBER.append(dxl_model_number)
+DXL_ID = []
+NUMBER = []
+for i in range(1,20):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("ID is %d" % i)  
+        DXL_ID.append(i)
+        NUMBER.append(dxl_model_number)
 
 
-    for i in range(0, len(DXL_ID)):
-        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 0, NUMBER[i])
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print('ID:%d, MODEL NUMBER:%d' %(DXL_ID[i], NUMBER[i]))
-        time.sleep(0.1)
+for i in range(0, len(DXL_ID)):
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID[i], 0, NUMBER[i])
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print('ID:%d, MODEL NUMBER:%d' %(DXL_ID[i], NUMBER[i]))
+    time.sleep(0.1)
 
-        NEW_ID = int(input('NEW ID:'))
+    NEW_ID = int(input('NEW ID:'))
 
-        dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler,  DXL_ID[i], 7, NEW_ID)
+    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler,  DXL_ID[i], 7, NEW_ID)
+    if dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+
+    time.sleep(0.1)
+    dxl_addparam_result = groupSyncRead.addParam(NEW_ID)
+    if dxl_addparam_result != True:
+        print("[ID:%03d] groupSyncRead addparam failed" % NEW_ID)
+        quit()
+    # Syncread present position
+    dxl_comm_result = groupSyncRead.txRxPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+
+    # Get Dynamixel ID value
+    i_d = groupSyncRead.getData(NEW_ID, 7, 1)
+    i_d = struct.unpack('i', struct.pack('I',  i_d))[0]
+    print("[ID:%03d]" % i_d)
+
+    time.sleep(0.1)
+
+    if i_d == NEW_ID:
+        Control_Table_Backup(NEW_ID)
         if dxl_error != 0:
             print("%s" % packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("chande the ID succeeded")
+            print('Now ID is %d' % NEW_ID)
 
-        time.sleep(0.1)
-        dxl_addparam_result = groupSyncRead.addParam(NEW_ID)
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncRead addparam failed" % NEW_ID)
-            quit()
-        # Syncread present position
-        dxl_comm_result = groupSyncRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    time.sleep(0.3)
 
-        # Get Dynamixel ID value
-        i_d = groupSyncRead.getData(NEW_ID, 7, 1)
-        i_d = struct.unpack('i', struct.pack('I',  i_d))[0]
-        print("[ID:%03d]" % i_d)
-
-        time.sleep(0.1)
-
-        if i_d == NEW_ID:
-            Control_Table_Backup(NEW_ID)
-            if dxl_error != 0:
-                print("%s" % packetHandler.getRxPacketError(dxl_error))
-            else:
-                print("chande the ID succeeded")
-                print('Now ID is %d' % NEW_ID)
-
-        time.sleep(0.3)
-
-    time.sleep(0.5)
+time.sleep(0.5)
 
 
-    print('\n')
-    print('改完ID断电保存')
-    print('\n')
+print('\n')
+print('改完ID断电保存')
+print('\n')
 
 
-    # Close port
-    portHandler.closePort()
-
-else:
-    print("Not powered on/not connected to equipment")
+# Close port
+portHandler.closePort()
