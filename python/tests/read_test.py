@@ -132,29 +132,24 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
 
 Power_judgment()
 
-if SOURCE:
+for i in range(0, len(DXL_ID)):
+    # Add parameter storage for Dynamixel present position value
+    dxl_addparam_result = groupSyncRead.addParam(DXL_ID[i])
+    if dxl_addparam_result != True:
+        print("[ID:%03d] groupSyncRead addparam failed" % DXL_ID[i])
+        quit()
+
+    # Syncread present position
+    dxl_comm_result = groupSyncRead.txRxPacket()
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
     for i in range(0, len(DXL_ID)):
-        # Add parameter storage for Dynamixel present position value
-        dxl_addparam_result = groupSyncRead.addParam(DXL_ID[i])
-        if dxl_addparam_result != True:
-            print("[ID:%03d] groupSyncRead addparam failed" % DXL_ID[i])
-            quit()
+        # Get Dynamixel present position value
+        pwmlimit = groupSyncRead.getData(DXL_ID[i], 36, 2)
+        pwmlimit = struct.unpack('i', struct.pack('I', pwmlimit))[0];
 
-        # Syncread present position
-        dxl_comm_result = groupSyncRead.txRxPacket()
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        print("[ID:%03d] PresPos:%03d" % (DXL_ID[i] ,pwmlimit))
 
-        for i in range(0, len(DXL_ID)):
-            # Get Dynamixel present position value
-            pwmlimit = groupSyncRead.getData(DXL_ID[i], 36, 2)
-            pwmlimit = struct.unpack('i', struct.pack('I', pwmlimit))[0];
-
-            print("[ID:%03d] PresPos:%03d" % (DXL_ID[i] ,pwmlimit))
-
-    # Close port
-    portHandler.closePort()
-
-else:
-    print("Not powered on/not connected to equipment")
+# Close port
+portHandler.closePort()
