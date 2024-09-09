@@ -176,101 +176,96 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
 
 Power_judgment()
 
-if SOURCE:
+ID = []
 
-    ID = []
+MODEL_NUMBER = int(input('MODEL NUMBER:'))
+# Try to ping the Dynamixel5
+# Get Dynamixel model number
+for i in range(1,20):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("ID[%d]ping Succeeded" % i)
+        ID.append(i)
+    time.sleep(0.5)
 
-    MODEL_NUMBER = int(input('MODEL NUMBER:'))
-    # Try to ping the Dynamixel5
-    # Get Dynamixel model number
-    for i in range(1,20):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("ID[%d]ping Succeeded" % i)
-            ID.append(i)
-        time.sleep(0.5)
+DXL_ID = ID[0]
 
-    DXL_ID = ID[0]
-
-    if DXL_ID == 1:
-        #decode
-        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, 14, 4660)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("decode Succeeded")
-        time.sleep(0.5)
-
-    #motor  connected
-    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, 0, MODEL_NUMBER)
+if DXL_ID == 1:
+    #decode
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, 14, 4660)
     if dxl_comm_result != COMM_SUCCESS:
         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
     elif dxl_error != 0:
         print("%s" % packetHandler.getRxPacketError(dxl_error))
     else:
-        print("connected succeeded")
+        print("decode Succeeded")
     time.sleep(0.5)
 
-    #Factory Reset
-    #dxl_comm_result, dxl_error = packetHandler.factoryReset(portHandler, DXL_ID)
-    Dynamixel_Factory_Reset(DXL_ID)
-    time.sleep(0.5)
-    #Reboot
-    dxl_comm_result, dxl_error = packetHandler.reboot(portHandler, DXL_ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Reboot Succeeded")
-    time.sleep(0.5)
-
-
-    #Calibrate the zero position
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, 11, ZERO_POSITION)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("Calibrate succeeded")
-    time.sleep(0.5)
-
-    NEW_ID = int(input('NEW ID :'))
-    dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, 7, NEW_ID)
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("chande the ID succeeded")
-    time.sleep(0.5)
-
-    #Control Table Backup
-    Control_Table_Backup(NEW_ID)
-    time.sleep(0.5)
-
-    if dxl_comm_result != COMM_SUCCESS:
-        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-    elif dxl_error != 0:
-        print("%s" % packetHandler.getRxPacketError(dxl_error))
-    else:
-        print("[ID:%03d] save Succeeded. MODEL_NUMBER : %d" % (NEW_ID, MODEL_NUMBER))
-
-    print('\n')
-    print('Power off and restart')
-    print('断电重启')
-    print('\n')
-
-
-    # Close port
-    portHandler.closePort()
-
+#motor  connected
+dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler, DXL_ID, 0, MODEL_NUMBER)
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+elif dxl_error != 0:
+    print("%s" % packetHandler.getRxPacketError(dxl_error))
 else:
-    print("Not powered on/not connected to equipment")
+    print("connected succeeded")
+time.sleep(0.5)
+
+#Factory Reset
+#dxl_comm_result, dxl_error = packetHandler.factoryReset(portHandler, DXL_ID)
+Dynamixel_Factory_Reset(DXL_ID)
+time.sleep(0.5)
+#Reboot
+dxl_comm_result, dxl_error = packetHandler.reboot(portHandler, DXL_ID)
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+elif dxl_error != 0:
+    print("%s" % packetHandler.getRxPacketError(dxl_error))
+else:
+    print("Reboot Succeeded")
+time.sleep(0.5)
+
+
+#Calibrate the zero position
+dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, 11, ZERO_POSITION)
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+elif dxl_error != 0:
+    print("%s" % packetHandler.getRxPacketError(dxl_error))
+else:
+    print("Calibrate succeeded")
+time.sleep(0.5)
+
+NEW_ID = int(input('NEW ID :'))
+dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler, DXL_ID, 7, NEW_ID)
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+elif dxl_error != 0:
+    print("%s" % packetHandler.getRxPacketError(dxl_error))
+else:
+    print("chande the ID succeeded")
+time.sleep(0.5)
+
+#Control Table Backup
+Control_Table_Backup(NEW_ID)
+time.sleep(0.5)
+
+if dxl_comm_result != COMM_SUCCESS:
+    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+elif dxl_error != 0:
+    print("%s" % packetHandler.getRxPacketError(dxl_error))
+else:
+    print("[ID:%03d] save Succeeded. MODEL_NUMBER : %d" % (NEW_ID, MODEL_NUMBER))
+
+print('\n')
+print('Power off and restart')
+print('断电重启')
+print('\n')
+
+
+# Close port
+portHandler.closePort()
