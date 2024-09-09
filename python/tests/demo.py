@@ -357,103 +357,100 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
 
 Power_judgment()
 
-if SOURCE:
-    DXL_ID = []
+DXL_ID = []
 
-    for i in range(1,21):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("ID [%d] ping Succeeded" % i)
-            print('number:%d' % dxl_model_number)
-            DXL_ID.append(i)
-
-        time.sleep(0.2)
-
-
-
-
-    for i in range(0,len(DXL_ID)):
-
-
-        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler,DXL_ID[i],520,300)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("change profile acc time Succeeded")
-
-
-        dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler,DXL_ID[i], 522, 1500)
-        if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("change profile time Succeeded")
-    
-    for i in range(0,len(DXL_ID)):
-        Torque_Enable(DXL_ID[i], 1)
-
-    time.sleep(0.5)
-    if DXL_ID[1] == 1:
-        move1()
-        time.sleep(2)
+for i in range(1,21):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
     else:
-        move5()
-        time.sleep(2)
+        print("ID [%d] ping Succeeded" % i)
+        print('number:%d' % dxl_model_number)
+        DXL_ID.append(i)
 
-    while flag:
-        if DXL_ID[1] == 1:
-            move1()
-            time.sleep(2)
-            move2()
-            time.sleep(2)
-            move3()
-            time.sleep(2)
-            move4()
-            time.sleep(2)
-            move3()
-            time.sleep(2)
-            move2()
-            time.sleep(2)
-        else:
-            move5()
-            time.sleep(2)
-            move6()
-            time.sleep(2)
-            move7()
-            time.sleep(2)
-            move8()
-            time.sleep(2)
-            move7()
-            time.sleep(2)
-            move6()
-            time.sleep(2)
+    time.sleep(0.2)
 
 
-    if DXL_ID[1] == 1:
-        move1()
-        time.sleep(2)
+
+
+for i in range(0,len(DXL_ID)):
+
+
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler,DXL_ID[i],520,300)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
     else:
-        move5()
-        time.sleep(2)
+        print("change profile acc time Succeeded")
 
 
+    dxl_comm_result, dxl_error = packetHandler.write2ByteTxRx(portHandler,DXL_ID[i], 522, 1500)
+    if dxl_comm_result != COMM_SUCCESS:
+        print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("change profile time Succeeded")
 
-    for i in range(0,len(DXL_ID)):
-        Torque_Enable(DXL_ID[i],0)
+for i in range(0,len(DXL_ID)):
+    Torque_Enable(DXL_ID[i], 1)
 
-
-    # Close port
-    portHandler.closePort()
-
+time.sleep(0.5)
+if DXL_ID[1] == 1:
+    move1()
+    time.sleep(2)
 else:
-    print("Not powered on/not connected to equipment")
+    move5()
+    time.sleep(2)
+
+while flag:
+    if DXL_ID[1] == 1:
+        move1()
+        time.sleep(2)
+        move2()
+        time.sleep(2)
+        move3()
+        time.sleep(2)
+        move4()
+        time.sleep(2)
+        move3()
+        time.sleep(2)
+        move2()
+        time.sleep(2)
+    else:
+        move5()
+        time.sleep(2)
+        move6()
+        time.sleep(2)
+        move7()
+        time.sleep(2)
+        move8()
+        time.sleep(2)
+        move7()
+        time.sleep(2)
+        move6()
+        time.sleep(2)
+
+
+if DXL_ID[1] == 1:
+    move1()
+    time.sleep(2)
+else:
+    move5()
+    time.sleep(2)
+
+
+
+for i in range(0,len(DXL_ID)):
+    Torque_Enable(DXL_ID[i],0)
+
+
+# Close port
+portHandler.closePort()
+
 
 '''
         dxl_comm_result, dxl_error = packetHandler.write1ByteTxRx(portHandler,DXL_ID[i],10,4)
