@@ -168,83 +168,71 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
 
 Power_judgment()
 
-if SOURCE:
+DXL_ID = []
+NUMBER = []
+for i in range(1,21):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("ID [%d] ping Succeeded" % i)
+        print('number:%d' % dxl_model_number)
+        DXL_ID.append(i)
+        NUMBER.append(dxl_model_number)
 
-    DXL_ID = []
-    NUMBER = []
-    for i in range(1,21):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
-        if dxl_comm_result != COMM_SUCCESS:
-            continue
-        elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
-        else:
-            print("ID [%d] ping Succeeded" % i)
-            print('number:%d' % dxl_model_number)
-            DXL_ID.append(i)
-            NUMBER.append(dxl_model_number)
+ID = DXL_ID[0]
+NUM = NUMBER[0]
+    
+MODEL_NUMBER(ID,NUM)
+time.sleep(0.3)
 
-    ID = DXL_ID[0]
-    NUM = NUMBER[0]
-        
-    MODEL_NUMBER(ID,NUM)
-    time.sleep(0.3)
+Torque_Enable(ID, 1)
+time.sleep(0.5)
 
-    Torque_Enable(ID, 1)
-    time.sleep(0.5)
+opsition_control(ID,0)
+time.sleep(3)
+weizhi()
 
-    opsition_control(ID,0)
-    time.sleep(3)
-    weizhi()
+Torque_Enable(ID,0)
+time.sleep(0.5)
 
-    Torque_Enable(ID,0)
-    time.sleep(0.5)
+Control_Mode(ID,1)
+time.sleep(0.5)
 
-    Control_Mode(ID,1)
-    time.sleep(0.5)
+Torque_Enable(ID, 1)
+time.sleep(0.5)
 
-    Torque_Enable(ID, 1)
-    time.sleep(0.5)
+while 1:
+    velocity_control(ID, 100)
+    if getch() == chr(0x0d):
+        break
+print("Press 'Enter' to continue!")
+    
+velocity_control(ID, 0)
+time.sleep(1)
 
-    while 1:
-        velocity_control(ID, 100)
-        if getch() == chr(0x0d):
-            break
+while 1:
+    if getch() == chr(0x0d):
+        break
     print("Press 'Enter' to continue!")
-        
-    velocity_control(ID, 0)
-    time.sleep(1)
 
-    while 1:
-        if getch() == chr(0x0d):
-            break
-        print("Press 'Enter' to continue!")
+Torque_Enable(ID,0)
+time.sleep(1)
 
-    Torque_Enable(ID,0)
-    time.sleep(1)
+Control_Mode(ID,4)
+time.sleep(1)
 
-    Control_Mode(ID,4)
-    time.sleep(1)
+Torque_Enable(ID, 1)
+time.sleep(1)
 
-    Torque_Enable(ID, 1)
-    time.sleep(1)
+opsition_control(ID,0)
+time.sleep(3)
 
-    opsition_control(ID,0)
-    time.sleep(3)
+Torque_Enable(ID, 0)
+time.sleep(0.5)
 
-    Torque_Enable(ID, 0)
-    time.sleep(0.5)
-
-    # Close port
-    portHandler.closePort()
-
-else:
-    print("Not powered on/not connected to equipment")
-
-
-
-
-
-
-
+# Close port
+portHandler.closePort()
 
