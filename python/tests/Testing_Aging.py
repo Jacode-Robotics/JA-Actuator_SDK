@@ -178,98 +178,89 @@ if portHandler.setBaudRate(BAUDRATE) == 0:
 
 Power_judgment()
 
-if SOURCE:
-    DXL_ID = []
-    NUMBER = []
+DXL_ID = []
+NUMBER = []
 
-    for i in range(1,21):
-        dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+for i in range(1,21):
+    dxl_model_number,dxl_comm_result, dxl_error = packetHandler.ping(portHandler, i)
+    if dxl_comm_result != COMM_SUCCESS:
+        continue
+    elif dxl_error != 0:
+        print("%s" % packetHandler.getRxPacketError(dxl_error))
+    else:
+        print("ID [%d] ping Succeeded" % i)
+        print('number:%d' % dxl_model_number)
+        DXL_ID.append(i)
+        NUMBER.append(dxl_model_number)
+        
+    time.sleep(0.5)
+
+
+for i in range(0,len(DXL_ID)):
+    MODEL_NUMBER(DXL_ID[i],NUMBER[i])
+    time.sleep(0.3)
+    Torque_Enable(DXL_ID[i],0)
+    time.sleep(0.2)
+    profile_velocity(DXL_ID[i],500)
+    time.sleep(0.2)
+    Torque_Enable(DXL_ID[i],1)
+
+while 1:
+    id_number = 0
+    for i in range(0,len(DXL_ID)):
+        opsition_control(DXL_ID[i],0)
+        id_number += 1
+    if id_number >= len(DXL_ID):
+        break
+
+STATUS = [0]*len(DXL_ID)
+while 1:
+    '''print("press space to continue")
+    if getch() == chr(0x20):
+        break'''
+    for i in range(0,len(DXL_ID)):
+        moving_status, dxl_comm_result, dxl_error = packetHandler.read1ByteTxRx(portHandler, DXL_ID[i], 571)
+        moving_status = struct.unpack('i', struct.pack('I', moving_status))[0]
         if dxl_comm_result != COMM_SUCCESS:
-            continue
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
             print("%s" % packetHandler.getRxPacketError(dxl_error))
         else:
-            print("ID [%d] ping Succeeded" % i)
-            print('number:%d' % dxl_model_number)
-            DXL_ID.append(i)
-            NUMBER.append(dxl_model_number)
-            
-        time.sleep(0.5)
+            print("[ID:%03d]  moving_status:%03d" % (DXL_ID[i],  moving_status))
+            STATUS[i] = moving_status
+            time.sleep(0.1)
 
+    if all(element == 1 for element in STATUS):
+        break
+    time.sleep(0.1)
+       
+time.sleep(0.3)
 
+while flag:
     for i in range(0,len(DXL_ID)):
-        MODEL_NUMBER(DXL_ID[i],NUMBER[i])
-        time.sleep(0.3)
-        Torque_Enable(DXL_ID[i],0)
-        time.sleep(0.2)
-        profile_velocity(DXL_ID[i],500)
-        time.sleep(0.2)
-        Torque_Enable(DXL_ID[i],1)
-    
-    while 1:
-        id_number = 0
-        for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],0)
-            id_number += 1
-        if id_number >= len(DXL_ID):
-            break
 
-    STATUS = [0]*len(DXL_ID)
-    while 1:
-        '''print("press space to continue")
-        if getch() == chr(0x20):
-            break'''
-        for i in range(0,len(DXL_ID)):
-            moving_status, dxl_comm_result, dxl_error = packetHandler.read1ByteTxRx(portHandler, DXL_ID[i], 571)
-            moving_status = struct.unpack('i', struct.pack('I', moving_status))[0]
-            if dxl_comm_result != COMM_SUCCESS:
-                print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
-            elif dxl_error != 0:
-                print("%s" % packetHandler.getRxPacketError(dxl_error))
-            else:
-                print("[ID:%03d]  moving_status:%03d" % (DXL_ID[i],  moving_status))
-                STATUS[i] = moving_status
-                time.sleep(0.1)
+        opsition_control(DXL_ID[i],5000)
 
-        if all(element == 1 for element in STATUS):
-            break
-        time.sleep(0.1)
-           
-    time.sleep(0.3)
-
-    while flag:
-        for i in range(0,len(DXL_ID)):
-
-            opsition_control(DXL_ID[i],5000)
-
-        time.sleep(4)
-
-        for i in range(0,len(DXL_ID)):
-            opsition_control(DXL_ID[i],-5000)
-        
-        print('succeeded')
-
-        time.sleep(4)
-        print('press Enter to quit!')
-
-        time.sleep(0.1)
-
-
-    for i in range(0,len(DXL_ID)):
-        opsition_control(DXL_ID[i],0)
     time.sleep(4)
 
     for i in range(0,len(DXL_ID)):
-        Torque_Enable(DXL_ID[i],0)
+        opsition_control(DXL_ID[i],-5000)
+    
+    print('succeeded')
+
+    time.sleep(4)
+    print('press Enter to quit!')
+
+    time.sleep(0.1)
 
 
-    # Close port
-    portHandler.closePort()
+for i in range(0,len(DXL_ID)):
+    opsition_control(DXL_ID[i],0)
+time.sleep(4)
 
-else:
-    print("Not powered on/not connected to equipment")
-
-
-
+for i in range(0,len(DXL_ID)):
+    Torque_Enable(DXL_ID[i],0)
 
 
+# Close port
+portHandler.closePort()
