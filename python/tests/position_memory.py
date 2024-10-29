@@ -231,13 +231,13 @@ if __name__ == '__main__':
         #         print("[ID:%03d] groupSyncWrite addparam failed" % ID[i])
         #         quit()
 
-        #     dxl_comm_result = groupSyncWrite.txPacket()
-        #     if dxl_comm_result != COMM_SUCCESS:
-        #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+    #     dxl_comm_result = groupSyncWrite.txPacket()
+    #     if dxl_comm_result != COMM_SUCCESS:
+    #         print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
 
-        #     # Clear syncwrite parameter storage
-        #     groupSyncWrite.clearParam()
-        #     time.sleep(0.3)
+    #     # Clear syncwrite parameter storage
+    #     groupSyncWrite.clearParam()
+    #     time.sleep(0.3)
 
         # STATUS = [0]*len(ID)
         # while 1:
