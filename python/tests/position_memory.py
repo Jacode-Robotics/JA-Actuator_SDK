@@ -34,7 +34,7 @@ LEN_GOAL_POSITION           = 4
 ADDR_PROFILE_TIME           = 522
 
 # Minimum running time
-MINIMUM_TIME_LIMIT          = 2000
+MINIMUM_TIME_LIMIT          = 3500
 
 portHandler = PortHandler(DEVICENAME)
 packetHandler = PacketHandler(PROTOCOL_VERSION)
@@ -239,9 +239,9 @@ if __name__ == '__main__':
     print("Recording Complete")
     ''' 
 # Reproduce the location, and annotate it when recording the location
-    ''''''
+    '''
     position_recurrence()
-    
+    '''
 # State initialization, no comments required
 
     for i in range(0,len(ID)):
